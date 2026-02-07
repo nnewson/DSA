@@ -12,6 +12,11 @@ dependencies = [
     "mmh3>=5.2.0",
     "xxhash>=3.6.0",
 ]
+readme = "README.md"
+license = { text = "GNU General Public License v3.0" }
+authors = [
+    { name = "Nick Newson", email = "nick.newson@example.com" }
+]
 
 [project.optional-dependencies]
 dev = [
