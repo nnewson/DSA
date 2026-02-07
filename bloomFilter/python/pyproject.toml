@@ -19,7 +19,7 @@ authors = [
 ]
 
 [project.optional-dependencies]
-dev = [
+test = [
     "pytest>=8.0",
 ]
 
