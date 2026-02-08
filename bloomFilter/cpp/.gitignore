@@ -3,3 +3,4 @@ build
 build-*
 vcpkg_installed
 CMakeUserPresets.json
+docs

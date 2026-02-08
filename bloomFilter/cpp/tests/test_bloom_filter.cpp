@@ -30,8 +30,8 @@ static bool containsString(const BloomFilter& bf, const std::string& s) {
     return bf.contains(asBytes(s));
 }
 
-static size_t combinedHashString(const BloomFilter& bf, const std::string& s, size_t i) {
-    return bf.calculateCombinedHash(asBytes(s), i);
+static HashResult hashesForString(const std::string& s) {
+    return BloomFilter::calculateHashes(asBytes(s));
 }
 
 // ---------------------------------------------------------------------------
@@ -295,26 +295,27 @@ TEST(FalsePositiveRate, NoFalseNegatives) {
 
 TEST(CombinedHash, HashWithinBounds) {
     BloomFilter bf(100, 0.01);
+    HashResult hashes = hashesForString("test");
     for (size_t i = 1; i <= bf.getHashCount(); ++i) {
-        size_t h = combinedHashString(bf, "test", i);
+        size_t h = (hashes.hash1 + i * hashes.hash2) % bf.getBitArraySize();
         EXPECT_LT(h, bf.getBitArraySize());
     }
 }
 
 TEST(CombinedHash, DifferentIndicesProduceDifferentHashes) {
     BloomFilter bf(1000, 0.01);
-    std::set<size_t> hashes;
+    HashResult hashes = hashesForString("test");
+    std::set<size_t> positions;
     for (size_t i = 1; i <= bf.getHashCount(); ++i) {
-        hashes.insert(combinedHashString(bf, "test", i));
+        positions.insert((hashes.hash1 + i * hashes.hash2) % bf.getBitArraySize());
     }
-    EXPECT_GT(hashes.size(), 1u);
+    EXPECT_GT(positions.size(), 1u);
 }
 
 TEST(CombinedHash, DifferentItemsProduceDifferentHashes) {
-    BloomFilter bf(1000, 0.01);
-    size_t h1 = combinedHashString(bf, "alpha", 1);
-    size_t h2 = combinedHashString(bf, "beta", 1);
-    EXPECT_NE(h1, h2);
+    HashResult h1 = hashesForString("alpha");
+    HashResult h2 = hashesForString("beta");
+    EXPECT_TRUE(h1.hash1 != h2.hash1 || h1.hash2 != h2.hash2);
 }
 
 // ---------------------------------------------------------------------------

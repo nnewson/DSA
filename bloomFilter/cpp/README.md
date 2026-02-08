@@ -24,3 +24,9 @@ Run the tests:
 ```bash
 ./build/test_bloom_filter
 ```
+
+Build documentation into the docs folder:
+
+```bash
+doxygen Doxyfile
+```
