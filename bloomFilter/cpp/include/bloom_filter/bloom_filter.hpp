@@ -301,9 +301,11 @@ private:
     bool forEachPosition(std::span<const std::byte> element, F&& fn) const
     {
         HashResult hashes = calculateHashes(element);
-        for (std::size_t i = 0; i < this->hashCount; ++i) {
+        for (std::size_t i = 0; i < this->hashCount; ++i) 
+        {
             std::size_t position = (hashes.hash1 + (i + 1) * hashes.hash2) % this->bitArray.size();
-            if (!fn(position)) {
+            if (!fn(position)) 
+            {
                 return false;
             }
         }
