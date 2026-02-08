@@ -18,24 +18,24 @@ class BloomFilter:
 
         # Store the maximum number of elements and the desired false positive rate
         # for reference.
-        self._max_elements = max_elements
-        self._false_positive_rate = false_positive_rate
+        self._max_elements: int = max_elements
+        self._false_positive_rate: float = false_positive_rate
 
         # Calculate the size of the bit array needed to achieve the desired false
         # positive rate for the given number of elements, and pad it to the nearest
         # multiple of BIT_ALIGNMENT for better performance.
-        self._bit_array_size = self.calculate_bit_size(
+        self._bit_array_size: int = self.calculate_bit_size(
             max_elements, false_positive_rate
         )
         self._bit_array_size += (
             BIT_ALIGNMENT - (self._bit_array_size % BIT_ALIGNMENT)
         ) % BIT_ALIGNMENT
-        self._bit_array = bitarray(self._bit_array_size)
+        self._bit_array: bitarray = bitarray(self._bit_array_size)
         self._bit_array.setall(0)
 
         # Calculate the number of hash functions needed to achieve the desired false
         # positive rate for the given number of elements.
-        self._hash_count = self.calculate_hash_count(
+        self._hash_count: int = self.calculate_hash_count(
             self._max_elements, self._bit_array_size
         )
 
@@ -53,7 +53,7 @@ class BloomFilter:
             None
         """
         for i in range(self._hash_count):
-            combined_hash = self._calculate_combined_hash(item, i + 1)
+            combined_hash: int = self._calculate_combined_hash(item, i + 1)
             self._bit_array[combined_hash] = 1
 
     def contains(self, item: str) -> bool:
@@ -72,7 +72,7 @@ class BloomFilter:
             A return value of True means the item was probably added, but could be a false positive.
         """
         for i in range(self._hash_count):
-            combined_hash = self._calculate_combined_hash(item, i + 1)
+            combined_hash: int = self._calculate_combined_hash(item, i + 1)
             if not self._bit_array[combined_hash]:
                 return False
         return True
@@ -144,7 +144,7 @@ class BloomFilter:
         # However, it always returns a tuple when signed is False, so we can safely
         # disable the warning here.
         # pylint: disable=unsubscriptable-object
-        hash1 = mmh3.hash64(item, i, signed=False)[0] % self._bit_array_size
+        hash1: int = mmh3.hash64(item, i, signed=False)[0] % self._bit_array_size
         hash2 = xxhash.xxh64(item, seed=i).intdigest() % self._bit_array_size
         return (hash1 + i * hash2) % self._bit_array_size
 
@@ -222,7 +222,7 @@ class BloomFilter:
         # The use of log(2) rather than a precomputed constant is for readability.
         # This static method is only called once during initialization, so the
         # performance impact is negligible.
-        m = -(max_elements * log(false_positive_rate) / log(2) ** 2)
+        m: float = -(max_elements * log(false_positive_rate) / log(2) ** 2)
         return int(ceil(m))
 
     @staticmethod
@@ -250,5 +250,5 @@ class BloomFilter:
         # The use of log(2) rather than a precomputed constant is for readability.
         # This static method is only called once during initialization, so the
         # performance impact is negligible.
-        k = (bit_array_size / max_elements) * log(2)
+        k: float = (bit_array_size / max_elements) * log(2)
         return int(ceil(k))
