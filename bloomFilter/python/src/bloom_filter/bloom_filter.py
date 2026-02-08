@@ -52,9 +52,12 @@ class BloomFilter:
         Returns:
             None
         """
+        hash1, hash2 = self._calculate_hashes(item)
+
         for i in range(self._hash_count):
-            combined_hash: int = self._calculate_combined_hash(item, i + 1)
-            self._bit_array[combined_hash] = 1
+            # Add 1 to handle the degenerate case where hash2 is 0
+            position: int = (hash1 + (i + 1) * hash2) % self._bit_array_size
+            self._bit_array[position] = 1
 
     def contains(self, item: str) -> bool:
         """
@@ -71,9 +74,12 @@ class BloomFilter:
             A return value of False guarantees the item was never added.
             A return value of True means the item was probably added, but could be a false positive.
         """
+        hash1, hash2 = self._calculate_hashes(item)
+
         for i in range(self._hash_count):
-            combined_hash: int = self._calculate_combined_hash(item, i + 1)
-            if not self._bit_array[combined_hash]:
+            # Add 1 to handle the degenerate case where hash2 is 0
+            position: int = (hash1 + (i + 1) * hash2) % self._bit_array_size
+            if not self._bit_array[position]:
                 return False
         return True
 
@@ -110,43 +116,33 @@ class BloomFilter:
             f"bitarray={self._bit_array})"
         )
 
-    def _calculate_combined_hash(self, item: str, i: int) -> int:
+    def _calculate_hashes(self, item: str) -> tuple[int, int]:
         """
-        Calculate a combined hash value for an item using double hashing technique.
+        Calculate two independent hash values for the given item.
 
-        This method combines two different hash functions (MurmurHash3 and xxHash) to generate
-        multiple hash values for the same item. The double hashing technique helps reduce hash
-        collisions and improves the distribution of bits in the bloom filter's bit array.
+        This method uses two different hashing algorithms (MurmurHash3 and xxHash)
+        to generate two independent hash values that will be used for double hashing
+        in the Bloom filter.
 
         Args:
-            item (str): The item to be hashed.
-            i (int): The iteration index used as a seed modifier to generate different hash
-                values for each hash function call.
+            item (str): The string item to be hashed.
 
         Returns:
-            int: A hash value in the range [0, bit_array_size) that represents the position
-                in the bit array where the item should be marked.
+            tuple[int, int]: A tuple containing two hash values:
+                - hash1: The first 64-bit hash value from MurmurHash3
+                - hash2: The 64-bit hash value from xxHash
 
         Note:
-            The formula used is (hash1 + i * hash2) % bit_array_size, which is a standard
-            double hashing approach that combines two independent hash functions to create
-            a sequence of hash values.
+            These hash values are used in conjunction with double hashing to
+            generate multiple hash functions for the Bloom filter, reducing
+            the need for multiple independent hash functions.
         """
-        # Use a combination of two different hash functions to generate multiple
-        # hash values for the item. This helps to reduce the chances of hash
-        # collisions and improve the distribution of bits in the bit array.
-
-        # Additionally, adding the index `i` to the seed of the second hash function
-        # ensures that we get different hash values for each iteration, further
-        # improving the distribution.
-
-        # FYI: Pylint seems have an issue with the below being "unscriptable".
-        # However, it always returns a tuple when signed is False, so we can safely
-        # disable the warning here.
+        # Pylint disable is necessary here because the mmh3.hash64 function returns a
+        # tuple, but the type hint in the mmh3 stub file does not reflect this correctly.
         # pylint: disable=unsubscriptable-object
-        hash1: int = mmh3.hash64(item, i, signed=False)[0] % self._bit_array_size
-        hash2 = xxhash.xxh64(item, seed=i).intdigest() % self._bit_array_size
-        return (hash1 + i * hash2) % self._bit_array_size
+        hash1: int = mmh3.hash64(item, signed=False)[0]
+        hash2: int = xxhash.xxh64(item).intdigest()
+        return (hash1, hash2)
 
     @property
     def max_elements(self) -> int:

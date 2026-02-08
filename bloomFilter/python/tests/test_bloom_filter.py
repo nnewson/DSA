@@ -207,22 +207,32 @@ class TestFalsePositiveRate:
 # ---------------------------------------------------------------------------
 
 
-class TestCalculateCombinedHash:
-    def test_hash_within_bounds(self):
+class TestCalculateHashes:
+    def test_returns_two_integers(self):
         bf = BloomFilter(100, 0.01)
-        for i in range(bf.hash_count):
-            h = bf._calculate_combined_hash("test", i)
-            assert 0 <= h < bf.bit_array_size
+        result = bf._calculate_hashes("test")
+        assert isinstance(result, tuple)
+        assert len(result) == 2
+        assert isinstance(result[0], int)
+        assert isinstance(result[1], int)
 
-    def test_different_indices_produce_different_hashes(self):
+    def test_combined_positions_within_bounds(self):
+        bf = BloomFilter(100, 0.01)
+        hash1, hash2 = bf._calculate_hashes("test")
+        for i in range(bf.hash_count):
+            position = (hash1 + i * hash2) % bf.bit_array_size
+            assert 0 <= position < bf.bit_array_size
+
+    def test_different_indices_produce_different_positions(self):
         bf = BloomFilter(1000, 0.01)
-        hashes = [bf._calculate_combined_hash("test", i) for i in range(bf.hash_count)]
-        assert len(set(hashes)) > 1
+        hash1, hash2 = bf._calculate_hashes("test")
+        positions = [(hash1 + i * hash2) % bf.bit_array_size for i in range(bf.hash_count)]
+        assert len(set(positions)) > 1
 
     def test_different_items_produce_different_hashes(self):
         bf = BloomFilter(1000, 0.01)
-        h1 = bf._calculate_combined_hash("alpha", 0)
-        h2 = bf._calculate_combined_hash("beta", 0)
+        h1 = bf._calculate_hashes("alpha")
+        h2 = bf._calculate_hashes("beta")
         assert h1 != h2
 
 
