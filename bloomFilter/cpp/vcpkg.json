@@ -1,0 +1,6 @@
+{
+  "dependencies": [
+    "xxhash",
+    "murmurhash"
+  ]
+}

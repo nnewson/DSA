@@ -1,0 +1,23 @@
+cmake_minimum_required(VERSION 3.20)
+
+project(bloom_filter
+  VERSION 0.1.0
+  DESCRIPTION "Bloom filter implementation in C++"
+  LANGUAGES CXX
+)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+find_package(xxHash CONFIG REQUIRED)
+find_package(murmurhash CONFIG REQUIRED)
+
+# Header-only library target for bloom_filter
+add_library(bloom_filter INTERFACE)
+target_include_directories(bloom_filter INTERFACE ${PROJECT_SOURCE_DIR}/include)
+target_link_libraries(bloom_filter INTERFACE xxHash::xxhash murmurhash::murmurhash)
+
+# Tests
+enable_testing()
+add_executable(test_bloom_filter tests/test_bloom_filter.cpp)
+target_link_libraries(test_bloom_filter PRIVATE bloom_filter)
+add_test(NAME test_bloom_filter COMMAND test_bloom_filter)
