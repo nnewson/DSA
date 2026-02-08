@@ -10,6 +10,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(xxHash CONFIG REQUIRED)
 find_package(murmurhash CONFIG REQUIRED)
+find_package(GTest CONFIG REQUIRED)
 
 # Header-only library target for bloom_filter
 add_library(bloom_filter INTERFACE)
@@ -19,5 +20,6 @@ target_link_libraries(bloom_filter INTERFACE xxHash::xxhash murmurhash::murmurha
 # Tests
 enable_testing()
 add_executable(test_bloom_filter tests/test_bloom_filter.cpp)
-target_link_libraries(test_bloom_filter PRIVATE bloom_filter)
-add_test(NAME test_bloom_filter COMMAND test_bloom_filter)
+target_link_libraries(test_bloom_filter PRIVATE bloom_filter GTest::gtest_main)
+include(GoogleTest)
+gtest_discover_tests(test_bloom_filter)
