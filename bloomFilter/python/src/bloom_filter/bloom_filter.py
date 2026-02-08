@@ -23,7 +23,7 @@ class BloomFilter:
 
         # Calculate the size of the bit array needed to achieve the desired false
         # positive rate for the given number of elements, and pad it to the nearest
-        # multiple of BYTE_ALIGNMENT for better performance.
+        # multiple of BIT_ALIGNMENT for better performance.
         self._bit_array_size = self.calculate_bit_size(
             max_elements, false_positive_rate
         )
