@@ -8,6 +8,7 @@ This will need to be updated to point to the vcpkg running on the build machine.
 Details of how to setup this up can been found in the link above under step 4.
 
 Configure CMake (which will install and build dependencies via vcpkg):
+
 ```bash
 cmake --preset=default
 ```
