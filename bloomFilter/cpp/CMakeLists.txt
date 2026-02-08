@@ -5,8 +5,6 @@ project(bloom_filter
   DESCRIPTION "Bloom filter implementation in C++"
   LANGUAGES CXX
 )
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(xxHash CONFIG REQUIRED)
 find_package(murmurhash CONFIG REQUIRED)
@@ -16,6 +14,7 @@ find_package(GTest CONFIG REQUIRED)
 add_library(bloom_filter INTERFACE)
 target_include_directories(bloom_filter INTERFACE ${PROJECT_SOURCE_DIR}/include)
 target_link_libraries(bloom_filter INTERFACE xxHash::xxhash murmurhash::murmurhash)
+target_compile_features(bloom_filter INTERFACE cxx_std_20)
 
 # Tests
 enable_testing()

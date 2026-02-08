@@ -1,15 +1,127 @@
+#ifndef BLOOM_FILTER_HPP
+#define BLOOM_FILTER_HPP    
+
 #include <cmath>
 #include <cstddef>
+#include <span>
+#include <stdexcept>
+#include <string>
 #include <vector>
 
 #include "xxhash.h"
 #include "MurmurHash3.h"
 
-constexpr size_t BIT_ALIGNMENT = 64;
+namespace bloom_filter {
 
-class bloomFilter {
+constexpr std::size_t BIT_ALIGNMENT = 64;
+constexpr std::size_t BIT_ALIGNMENT_SHIFT = 6; // log2(64)
+constexpr std::size_t BIT_ALIGNMENT_MASK = BIT_ALIGNMENT - 1;
+
+class BitArray {
 public:
-    bloomFilter(size_t maxElements, double falsePositiveRate)
+    explicit BitArray(std::size_t bits)
+        : words((bits + BIT_ALIGNMENT_MASK) / BIT_ALIGNMENT, 0) 
+    {
+    }
+
+    void set(std::size_t i) 
+    {
+        words[i >> BIT_ALIGNMENT_SHIFT] |= (1ULL << (i & BIT_ALIGNMENT_MASK));
+    }
+
+    void clear(std::size_t i) 
+    {
+        words[i >> BIT_ALIGNMENT_SHIFT] &= ~(1ULL << (i & BIT_ALIGNMENT_MASK));
+    }
+
+    bool test(std::size_t i) const 
+    {
+        return words[i >> BIT_ALIGNMENT_SHIFT] & (1ULL << (i & BIT_ALIGNMENT_MASK));
+    }
+
+    std::size_t size() const 
+    {
+        return words.size() * BIT_ALIGNMENT;
+    }
+
+private:
+    std::vector<std::uint64_t> words;
+};
+
+class BloomFilter {
+public:
+    BloomFilter(std::size_t maxElements, double falsePositiveRate)
+        : falsePositiveRate(falsePositiveRate),
+          maxElements(maxElements),
+          bitArray(calculateBitSize(maxElements, falsePositiveRate)),
+          hashCount(calculateHashCount(maxElements, bitArray.size()))    
+    {
+    }
+
+    void add(std::span<const std::byte> element)
+    {
+        for (std::size_t i = 0; i < this->hashCount; ++i) {
+            std::size_t combinedHash = this->calculateCombinedHash(element, i + 1);
+            this->bitArray.set(combinedHash);
+        }
+    }
+
+    [[nodiscard]]
+    bool contains(std::span<const std::byte> element) const
+    {
+        for (std::size_t i = 0; i < this->hashCount; ++i) {
+            std::size_t combinedHash = this->calculateCombinedHash(element, i + 1);
+            if (!this->bitArray.test(combinedHash)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    [[nodiscard]]
+    std::size_t getMaxElements() const noexcept
+    {
+        return maxElements; 
+    }
+
+    [[nodiscard]]
+    double getFalsePositiveRate() const noexcept
+    { 
+        return falsePositiveRate; 
+    }
+
+    [[nodiscard]]
+    std::size_t getBitArraySize() const noexcept
+    { 
+        return bitArray.size(); 
+    }
+
+    [[nodiscard]]
+    std::size_t getHashCount() const noexcept
+    { 
+        return hashCount; 
+    }
+
+    [[nodiscard]]
+    const BitArray& getBitArray() const noexcept
+    { 
+        return bitArray; 
+    }
+
+    [[nodiscard]]
+    std::size_t calculateCombinedHash(std::span<const std::byte> element, std::size_t i) const
+    {
+        uint64_t hash1 = XXH64(element.data(), element.size(), i);
+
+        uint32_t mmh3Hash[4];
+        MurmurHash3_x64_128(element.data(), element.size(), i, mmh3Hash);
+        uint64_t hash2 = (static_cast<uint64_t>(mmh3Hash[0]) << 32) | mmh3Hash[1];
+
+        return (hash1 + i * hash2) % this->bitArray.size();
+    }
+
+    [[nodiscard]]
+    static std::size_t calculateBitSize(std::size_t maxElements, double falsePositiveRate)
     {
         if (maxElements == 0) {
             throw std::invalid_argument("maxElements must be greater than 0, got " + std::to_string(maxElements));
@@ -17,103 +129,25 @@ public:
         if (falsePositiveRate <= 0.0 || falsePositiveRate >= 1.0) {
             throw std::invalid_argument("falsePositiveRate must be between 0 and 1, got " + std::to_string(falsePositiveRate));
         }
-
-        // Store the maximum number of elements and the desired false positive rate
-        // for reference.    
-        this->maxElements = maxElements;
-        this->falsePositiveRate = falsePositiveRate;
-        
-        // Calculate the size of the bit array needed to achieve the desired false
-        // positive rate for the given number of elements, and pad it to the nearest
-        // multiple of BIT_ALIGNMENT for better performance.
-        this->bitArraySize = this->calculateBitSize(
-            maxElements, falsePositiveRate
-        );
-        this->bitArraySize += (
-            BIT_ALIGNMENT - (this->bitArraySize % BIT_ALIGNMENT)
-        ) % BIT_ALIGNMENT;
-        this->bitArray = std::vector<bool>(this->bitArraySize, false);
-
-        // Calculate the number of hash functions needed to achieve the desired false
-        // positive rate for the given number of elements.
-        this->hashCount = this->calculateHashCount(
-            this->maxElements, this->bitArraySize
-        );
-    }
-
-    void add(const std::byte* element, size_t length)
-    {
-        for (size_t i = 0; i < this->hashCount; ++i) {
-            size_t combinedHash = this->calculateCombinedHash(element, length, i + 1);
-            this->bitArray[combinedHash] = true;
-        }
-    }
-
-    bool contains(const std::byte* element, size_t length) const
-    {
-        for (size_t i = 0; i < this->hashCount; ++i) {
-            size_t combinedHash = this->calculateCombinedHash(element, length, i + 1);
-            if (!this->bitArray[combinedHash]) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    size_t getMaxElements() const 
-    {
-        return maxElements; 
-    }
-
-    double getFalsePositiveRate() const 
-    { 
-        return falsePositiveRate; 
-    }
-
-    size_t getBitArraySize() const 
-    { 
-        return bitArraySize; 
-    }
-
-    size_t getHashCount() const 
-    { 
-        return hashCount; 
-    }
-
-    const std::vector<bool>& getBitArray() const 
-    { 
-        return bitArray; 
-    }
-
-    size_t calculateCombinedHash(const std::byte* element, size_t length, size_t i) const
-    {
-        uint64_t hash1 = XXH64(element, length, i);
-
-        uint32_t mmh3Hash[4];
-        MurmurHash3_x64_128(element, length, i, mmh3Hash);
-        uint64_t hash2 = (static_cast<uint64_t>(mmh3Hash[0]) << 32) | mmh3Hash[1];
-
-        return (hash1 + i * hash2) % this->bitArraySize;
-    }
-
-    static size_t calculateBitSize(size_t maxElements, double falsePositiveRate)
-    {
-        double m = -((static_cast<double>(maxElements) * std::log(falsePositiveRate)) / 
+        double m = -((static_cast<double>(maxElements) * std::log(falsePositiveRate)) /
                      (std::pow(std::log(2.0), 2.0)));
-        return static_cast<size_t>(std::ceil(m) );
+        return static_cast<std::size_t>(std::ceil(m));
     }
 
-    static size_t calculateHashCount(size_t maxElements, size_t bitArraySize)
+    [[nodiscard]]
+    static std::size_t calculateHashCount(std::size_t maxElements, std::size_t bitArraySize)
     {
         double k = (static_cast<double>(bitArraySize) / maxElements) * std::log(2.0);
-        return static_cast<size_t>(std::ceil(k));
+        return static_cast<std::size_t>(std::ceil(k));
     }
 
 private:
     double falsePositiveRate;
-    size_t maxElements;
-    size_t bitArraySize;
-    size_t hashCount;
-
-    std::vector<bool> bitArray;
+    std::size_t maxElements;
+    BitArray bitArray;
+    std::size_t hashCount;
 };
+
+} // namespace bloom_filter
+
+#endif // BLOOM_FILTER_HPP
