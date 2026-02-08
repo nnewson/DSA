@@ -1,4 +1,4 @@
-# BloomFilter
+# BloomFilter in Python
 
 Setup the virtual environment for python via:
 
