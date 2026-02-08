@@ -219,6 +219,9 @@ class BloomFilter:
                 n = maximum number of elements
                 p = false positive rate
         """
+        # The use of log(2) rather than a precomputed constant is for readability.
+        # This static method is only called once during initialization, so the
+        # performance impact is negligible.
         m = -(max_elements * log(false_positive_rate) / log(2) ** 2)
         return int(ceil(m))
 
@@ -244,5 +247,8 @@ class BloomFilter:
             This calculation minimizes the false positive probability for the given
             bit array size and expected number of elements.
         """
+        # The use of log(2) rather than a precomputed constant is for readability.
+        # This static method is only called once during initialization, so the
+        # performance impact is negligible.
         k = (bit_array_size / max_elements) * log(2)
         return int(ceil(k))
