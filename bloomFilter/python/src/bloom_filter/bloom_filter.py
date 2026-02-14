@@ -54,6 +54,7 @@ class BloomFilter:
         """
         hash1, hash2 = self._calculate_hashes(item)
         # Add 1 to i to handle the degenerate case where hash2 is 0
+        # pylint: disable=unnecessary-lambda-assignment
         position = lambda i: (hash1 + (i + 1) * hash2) % self._bit_array_size
 
         for i in range(self._hash_count):
@@ -76,6 +77,7 @@ class BloomFilter:
         """
         hash1, hash2 = self._calculate_hashes(item)
         # Add 1 to i to handle the degenerate case where hash2 is 0
+        # pylint: disable=unnecessary-lambda-assignment
         position = lambda i: (hash1 + (i + 1) * hash2) % self._bit_array_size
 
         return all(self._bit_array[position(i)] for i in range(self._hash_count))
