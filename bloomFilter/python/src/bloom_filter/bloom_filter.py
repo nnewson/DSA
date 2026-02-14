@@ -53,11 +53,11 @@ class BloomFilter:
             None
         """
         hash1, hash2 = self._calculate_hashes(item)
+        # Add 1 to i to handle the degenerate case where hash2 is 0
+        position = lambda i: (hash1 + (i + 1) * hash2) % self._bit_array_size
 
         for i in range(self._hash_count):
-            # Add 1 to handle the degenerate case where hash2 is 0
-            position: int = (hash1 + (i + 1) * hash2) % self._bit_array_size
-            self._bit_array[position] = 1
+            self._bit_array[position(i)] = 1
 
     def contains(self, item: str) -> bool:
         """
@@ -75,13 +75,10 @@ class BloomFilter:
             A return value of True means the item was probably added, but could be a false positive.
         """
         hash1, hash2 = self._calculate_hashes(item)
+        # Add 1 to i to handle the degenerate case where hash2 is 0
+        position = lambda i: (hash1 + (i + 1) * hash2) % self._bit_array_size
 
-        for i in range(self._hash_count):
-            # Add 1 to handle the degenerate case where hash2 is 0
-            position: int = (hash1 + (i + 1) * hash2) % self._bit_array_size
-            if not self._bit_array[position]:
-                return False
-        return True
+        return all(self._bit_array[position(i)] for i in range(self._hash_count))
 
     def __contains__(self, item: str) -> bool:
         """Enable the use of the 'in' operator for membership testing.
