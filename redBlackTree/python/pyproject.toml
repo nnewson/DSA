@@ -1,0 +1,16 @@
+[project]
+name = "red-black-tree"
+version = "0.1.0"
+requires-python = ">=3.12"
+readme = "README.md"
+license = { text = "GNU General Public License v3.0" }
+authors = [
+    { name = "Nick Newson", email = "nick.newson@example.com" }
+]
+
+[project.optional-dependencies]
+test = ["pytest>=8"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
