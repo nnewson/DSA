@@ -224,7 +224,7 @@ class RedBlackTree(Generic[K, V]):
 
         to_node.parent = from_node.parent
 
-    def _find_node_or_parent(self, key: K) -> (_Node[K, V], bool):
+    def _find_node_or_parent(self, key: K) -> tuple[_Node[K, V], bool]:
         """
         Find a node with the given key or locate its parent node.
 
@@ -422,17 +422,17 @@ class RedBlackTree(Generic[K, V]):
         """
         Performs a left rotation on the given node in the red-black tree.
 
-        A left rotation restructures the tree by moving the node's right child up to 
-        take the node's position, and moving the node down to be the left child of 
-        its former right child. The left subtree of the right child is transferred 
+        A left rotation restructures the tree by moving the node's right child up to
+        take the node's position, and moving the node down to be the left child of
+        its former right child. The left subtree of the right child is transferred
         to become the right subtree of the original node.
 
-        Before rotation:                    After rotation: 
+        Before rotation:                    After rotation:
 
-            node                             right_child 
-            /  \                                / \
+            node                             right_child
+             / \\                              / \\
            A   right_child    -->         node     C
-             /  \                          / \
+             /  \\                         / \\
             B    C                        A   B
 
         Args:
@@ -442,8 +442,8 @@ class RedBlackTree(Generic[K, V]):
             AssertionError: If the node's right child is None or nil.
 
         Note:
-            This operation modifies parent-child relationships but maintains the 
-            in-order traversal property of the tree. It is typically used during 
+            This operation modifies parent-child relationships but maintains the
+            in-order traversal property of the tree. It is typically used during
             red-black tree rebalancing operations.
         """
         right_child = node.right
@@ -475,17 +475,17 @@ class RedBlackTree(Generic[K, V]):
         """
         Performs a right rotation on the given node in the red-black tree.
 
-        A right rotation restructures the tree by moving the node's left child up to 
-        take the node's position, and moving the node down to be the right child of 
-        its former left child. The right subtree of the left child is transferred 
+        A right rotation restructures the tree by moving the node's left child up to
+        take the node's position, and moving the node down to be the right child of
+        its former left child. The right subtree of the left child is transferred
         to become the right subtree of the original node.
 
-        Before rotation:                    After rotation: 
+        Before rotation:                    After rotation:
 
-                 node                         left_child 
-                 /  \                            / \
+                 node                         left_child
+                 /  \\                          / \\                    
         left_child   C        -->              A    node
-           /  \                                      / \
+           /  \\                                     / \\ 
           A    B                                    B   C
 
         Args:
@@ -495,8 +495,8 @@ class RedBlackTree(Generic[K, V]):
             AssertionError: If the node's left child is None or nil.
 
         Note:
-            This operation modifies parent-child relationships but maintains the 
-            in-order traversal property of the tree. It is typically used during 
+            This operation modifies parent-child relationships but maintains the
+            in-order traversal property of the tree. It is typically used during
             red-black tree rebalancing operations.
         """
         left_child = node.left
