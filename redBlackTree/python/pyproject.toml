@@ -1,15 +1,26 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
 [project]
-name = "red-black-tree"
+name = "red_black_tree_nnewson"
 version = "0.1.0"
 requires-python = ">=3.12"
 readme = "README.md"
-license = { text = "GNU General Public License v3.0" }
+license = "GPL-3.0-or-later"
+license-files = ["LICENSE"]
 authors = [
     { name = "Nick Newson", email = "nick.newson@example.com" }
 ]
 
+[project.urls]
+Homepage = "https://github.com/nnewson/DSA/tree/main/redBlackTree"
+
 [project.optional-dependencies]
 test = ["pytest>=8"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
