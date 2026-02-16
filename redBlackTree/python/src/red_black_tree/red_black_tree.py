@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 from dataclasses import dataclass
 from enum import Enum
 from typing import Generic, Optional, Protocol, TypeVar
@@ -109,6 +110,7 @@ class RedBlackTree(Generic[K, V]):
             parent_node.right = new_node
             new_node.parent = parent_node
 
+        # After inserting the new node, we need to fix any violations of the Red-Black Tree properties.
         self._insert_fixup(new_node)
 
     def find(self, key: K) -> Optional[V]:
@@ -155,29 +157,40 @@ class RedBlackTree(Generic[K, V]):
 
         fixup_node: _Node[K, V]
 
+        # Handle the three cases for deletion:
         if node_to_delete.left is self._nil:
+            # 1. Node to delete has no left child (or is a leaf)
             fixup_node = node_to_delete.right
             self._transplant(node_to_delete, node_to_delete.right)
         elif node_to_delete.right is self._nil:
+            # 2. Node to delete has no right child
             fixup_node = node_to_delete.left
             self._transplant(node_to_delete, node_to_delete.left)
         else:
+            # 3. Node to delete has two children (find successor and replace)
             successor = self._minimum(node_to_delete.right)
             node_original_colour = successor.colour
             fixup_node = successor.right
 
             if successor.parent == node_to_delete:
+                # If the successor is the direct child of the node to delete, we can directly
+                # transplant the successor to the node's position.
                 fixup_node.parent = successor
             else:
+                # Otherwise, we need to first replace the successor with its right child
+                # and then replace the node to delete with the successor.
                 self._transplant(successor, successor.right)
                 successor.right = node_to_delete.right
                 successor.right.parent = successor
 
+            # Finally, replace the node to delete with the successor.
             self._transplant(node_to_delete, successor)
             successor.left = node_to_delete.left
             successor.left.parent = successor
             successor.colour = node_to_delete.colour
 
+        # If the original colour of the node being deleted was black, we need to fix up the tree
+        # to restore the Red-Black Tree properties.
         if node_original_colour == Colour.BLACK:
             self._delete_fixup(fixup_node)
 
@@ -202,15 +215,16 @@ class RedBlackTree(Generic[K, V]):
         return current_node
 
     def _transplant(self, from_node: _Node[K, V], to_node: _Node[K, V]) -> None:
-        """Replaces one subtree as a child of its parent with another subtree.
+        """
+        Replace a subtree rooted at from_node with a subtree rooted at to_node.
 
-        This method is used during the delete operation to replace the subtree
-        rooted at node u with the subtree rooted at node v. It updates the parent
-        pointers accordingly to maintain the tree structure.
+        This is a helper method used during node deletion in a Red-Black tree.
+        It updates the parent pointer of to_node and the appropriate child pointer
+        of from_node's parent to point to to_node instead of from_node.
 
         Args:
-            u: The node to be replaced (the subtree rooted at this node will be removed).
-            v: The node to replace u (the subtree rooted at this node will take u's place).
+            from_node: The node to be replaced.
+            to_node: The node that will replace from_node.
 
         Returns:
             None
@@ -245,6 +259,7 @@ class RedBlackTree(Generic[K, V]):
         parent_node: _Node[K, V] = self._nil
 
         while current_node is not self._nil:
+            # Update the parent node before moving down the tree.
             parent_node = current_node
             if key < current_node.key:
                 current_node = current_node.left
@@ -287,6 +302,7 @@ class RedBlackTree(Generic[K, V]):
         while node is not self.root and (
             node is self._nil or node.colour == Colour.BLACK
         ):
+            # Determine if the node is a left child or a right child to identify the sibling.
             if node == node.parent.left:
                 sibling = node.parent.right
                 if sibling.colour == Colour.RED:
@@ -348,8 +364,7 @@ class RedBlackTree(Generic[K, V]):
                     self._rotate_right(node.parent)
                     node = self.root
 
-        if node is not self._nil:
-            node.colour = Colour.BLACK
+        node.colour = Colour.BLACK
 
     def _insert_fixup(self, node: _Node[K, V]) -> None:
         """
@@ -522,4 +537,6 @@ class RedBlackTree(Generic[K, V]):
 
         # Move the current node to be the right child of the left child.
         left_child.right = node
+        node.parent = left_child
+        node.parent = left_child
         node.parent = left_child
