@@ -1,8 +1,8 @@
-from math import log, ceil
-from bitarray import bitarray, frozenbitarray
+from math import ceil, log
 
 import mmh3
 import xxhash
+from bitarray import bitarray, frozenbitarray
 
 BIT_ALIGNMENT = 64
 
@@ -53,9 +53,10 @@ class BloomFilter:
             None
         """
         hash1, hash2 = self._calculate_hashes(item)
+
         # Add 1 to i to handle the degenerate case where hash2 is 0
-        # pylint: disable=unnecessary-lambda-assignment
-        position = lambda i: (hash1 + (i + 1) * hash2) % self._bit_array_size
+        def position(i: int) -> int:
+            return (hash1 + (i + 1) * hash2) % self._bit_array_size
 
         for i in range(self._hash_count):
             self._bit_array[position(i)] = 1
@@ -76,9 +77,10 @@ class BloomFilter:
             A return value of True means the item was probably added, but could be a false positive.
         """
         hash1, hash2 = self._calculate_hashes(item)
+
         # Add 1 to i to handle the degenerate case where hash2 is 0
-        # pylint: disable=unnecessary-lambda-assignment
-        position = lambda i: (hash1 + (i + 1) * hash2) % self._bit_array_size
+        def position(i: int) -> int:
+            return (hash1 + (i + 1) * hash2) % self._bit_array_size
 
         return all(self._bit_array[position(i)] for i in range(self._hash_count))
 

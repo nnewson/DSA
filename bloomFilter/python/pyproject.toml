@@ -1,9 +1,9 @@
 [build-system]
-requires = ["setuptools>=75.0", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [project]
-name = "bloom-filter"
+name = "bloom_filter_nnewson"
 version = "0.1.0"
 description = "Bloom filter implementation in Python"
 requires-python = ">=3.12"
@@ -13,18 +13,22 @@ dependencies = [
     "xxhash>=3.6.0",
 ]
 readme = "README.md"
-license = { text = "GNU General Public License v3.0" }
+license = "GPL-3.0-or-later"
+license-files = ["LICENSE"]
 authors = [
     { name = "Nick Newson", email = "nick.newson@example.com" }
 ]
+
+[project.urls]
+Homepage = "https://github.com/nnewson/DSA/tree/main/bloomFilter"
 
 [project.optional-dependencies]
 test = [
     "pytest>=8.0",
 ]
 
-[tool.setuptools.packages.find]
-where = ["src"]
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
