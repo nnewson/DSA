@@ -1,8 +1,6 @@
-from __future__ import annotations
-
 from dataclasses import dataclass
 from enum import Enum
-from typing import Generic, Optional, Protocol, TypeVar
+from typing import Protocol
 
 
 class SupportsLT(Protocol):
@@ -14,10 +12,6 @@ class SupportsLT(Protocol):
     """
 
     def __lt__(self, other: object) -> bool: ...
-
-
-K = TypeVar("K", bound=SupportsLT)
-V = TypeVar("V")
 
 
 class Colour(Enum):
@@ -35,16 +29,16 @@ class Colour(Enum):
 # Using slots=true to save the overhead of the __dict__ for each node,
 # since we know exactly which attributes we need.
 @dataclass(slots=True)
-class _Node(Generic[K, V]):
+class _Node[K: SupportsLT, V]:
     key: K
     value: V
     colour: Colour = Colour.RED
-    left: Optional[_Node[K, V]] = None
-    right: Optional[_Node[K, V]] = None
-    parent: Optional[_Node[K, V]] = None
+    left: _Node[K, V] | None = None
+    right: _Node[K, V] | None = None
+    parent: _Node[K, V] | None = None
 
 
-class RedBlackTree(Generic[K, V]):
+class RedBlackTree[K: SupportsLT, V]:
     def __init__(self):
         # Sentinel node for leaves to simplify the logic for the delete operation and to
         # avoid having to check for None in various places.
@@ -57,24 +51,36 @@ class RedBlackTree(Generic[K, V]):
     def __len__(self) -> int:
         return self.size
 
+    def __contains__(self, key: K) -> bool:
+        _, found = self._find_node_or_parent(key)
+        return found
+
+    def __getitem__(self, key: K) -> V:
+        node, found = self._find_node_or_parent(key)
+        if not found:
+            raise KeyError(key)
+        return node.value
+
     def __iter__(self):
         """In-order traversal of the Red-Black Tree.
 
         This method allows iteration over the key-value pairs in the tree in sorted
-        order based on the keys. It uses a generator to yield each key-value pair
-        as a tuple (key, value) during the traversal.
+        order based on the keys. Uses an explicit stack to avoid recursion limits.
 
         Yields:
             A tuple containing the key and value of each node in the tree, in sorted order.
         """
+        stack: list[_Node[K, V]] = []
+        node = self.root
+        while stack or node is not self._nil:
+            while node is not self._nil:
+                stack.append(node)
+                node = node.left
 
-        def _in_order_traversal(node: _Node[K, V]):
-            if node is not self._nil:
-                yield from _in_order_traversal(node.left)
-                yield (node.key, node.value)
-                yield from _in_order_traversal(node.right)
+            node = stack.pop()
+            yield (node.key, node.value)
 
-        yield from _in_order_traversal(self.root)
+            node = node.right
 
     def insert(self, key: K, value: V) -> None:
         """Inserts a key-value pair into the Red-Black Tree.
@@ -113,7 +119,7 @@ class RedBlackTree(Generic[K, V]):
         # After inserting the new node, we need to fix any violations of the Red-Black Tree properties.
         self._insert_fixup(new_node)
 
-    def find(self, key: K) -> Optional[V]:
+    def find(self, key: K) -> V | None:
         """Finds the value associated with a given key in the Red-Black Tree.
 
         This method searches for a node with the specified key and returns its
@@ -152,8 +158,7 @@ class RedBlackTree(Generic[K, V]):
         if not found:
             return False
 
-        node: _Node[K, V] = node_to_delete
-        node_original_colour = node.colour
+        node_original_colour = node_to_delete.colour
 
         fixup_node: _Node[K, V]
 
@@ -299,9 +304,7 @@ class RedBlackTree(Generic[K, V]):
         Returns:
             None
         """
-        while node is not self.root and (
-            node is self._nil or node.colour == Colour.BLACK
-        ):
+        while node is not self.root and node.colour == Colour.BLACK:
             # Determine if the node is a left child or a right child to identify the sibling.
             if node == node.parent.left:
                 sibling = node.parent.right
@@ -537,6 +540,4 @@ class RedBlackTree(Generic[K, V]):
 
         # Move the current node to be the right child of the left child.
         left_child.right = node
-        node.parent = left_child
-        node.parent = left_child
         node.parent = left_child

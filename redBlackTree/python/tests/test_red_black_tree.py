@@ -490,6 +490,65 @@ class TestInsertFixupCases:
 # ──────────────────────────────────────────────
 
 
+class TestContains:
+    def test_contains_empty_tree(self):
+        tree = RedBlackTree()
+        assert 1 not in tree
+
+    def test_contains_existing_key(self):
+        tree = RedBlackTree()
+        tree.insert(5, "five")
+        tree.insert(3, "three")
+        tree.insert(7, "seven")
+        assert 5 in tree
+        assert 3 in tree
+        assert 7 in tree
+
+    def test_contains_missing_key(self):
+        tree = RedBlackTree()
+        tree.insert(5, "five")
+        assert 4 not in tree
+        assert 6 not in tree
+
+    def test_contains_after_delete(self):
+        tree = RedBlackTree()
+        tree.insert(5, "five")
+        tree.insert(3, "three")
+        tree.delete(5)
+        assert 5 not in tree
+        assert 3 in tree
+
+
+class TestGetItem:
+    def test_getitem_existing_key(self):
+        tree = RedBlackTree()
+        tree.insert(5, "five")
+        tree.insert(3, "three")
+        assert tree[5] == "five"
+        assert tree[3] == "three"
+
+    def test_getitem_missing_key_raises_key_error(self):
+        tree = RedBlackTree()
+        tree.insert(5, "five")
+        import pytest
+
+        with pytest.raises(KeyError):
+            tree[99]
+
+    def test_getitem_empty_tree_raises_key_error(self):
+        tree = RedBlackTree()
+        import pytest
+
+        with pytest.raises(KeyError):
+            tree[1]
+
+    def test_getitem_updated_value(self):
+        tree = RedBlackTree()
+        tree.insert(5, "five")
+        tree.insert(5, "updated")
+        assert tree[5] == "updated"
+
+
 class TestFind:
     def test_find_root(self):
         tree = RedBlackTree()
