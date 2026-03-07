@@ -19,8 +19,8 @@ constexpr std::size_t BIT_ALIGNMENT_MASK = BIT_ALIGNMENT - 1;
 
 class BitArray {
 public:
-    explicit BitArray(std::size_t bits)
-        : words((bits + BIT_ALIGNMENT_MASK) / BIT_ALIGNMENT, 0) 
+    explicit BitArray(std::size_t bits) : 
+        words((bits + BIT_ALIGNMENT_MASK) / BIT_ALIGNMENT, 0) 
     {
     }
 
@@ -65,11 +65,11 @@ public:
      * @note The constructor automatically calculates the optimal number of hash functions
      *       and bit array size based on the provided parameters.
      */
-    BloomFilter(std::size_t maxElements, double falsePositiveRate)
-        : falsePositiveRate(falsePositiveRate),
-          maxElements(maxElements),
-          bitArray(calculateBitSize(maxElements, falsePositiveRate)),
-          hashCount(calculateHashCount(maxElements, bitArray.size()))    
+    BloomFilter(std::size_t maxElements, double falsePositiveRate) :
+        falsePositiveRate(falsePositiveRate),
+        maxElements(maxElements),
+        bitArray(calculateBitSize(maxElements, falsePositiveRate)),
+        hashCount(calculateHashCount(maxElements, bitArray.size()))    
     {
     }
 
