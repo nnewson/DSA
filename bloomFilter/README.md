@@ -1,4 +1,4 @@
-This is a C++ and Python implementation of a [Bloom Filter](https://en.wikipedia.org/wiki/Bloom_filter)
+This is a C++, Rust, and Python implementation of a [Bloom Filter](https://en.wikipedia.org/wiki/Bloom_filter)
 
 It's a probabilistic data structure.  It can tell you that item *definetly* isn't in the data structure...or that it *could be* in the data structure.
 The usefulness for this, is that the look is cheap and very memory efficient, so it can be used as an optimisation for expensive look ups.
