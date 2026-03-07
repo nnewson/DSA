@@ -33,7 +33,7 @@ impl BloomFilter {
 
         let raw_bits = optimal_bit_count(max_elements, false_positive_rate);
         // Pad to next multiple of BIT_ALIGNMENT for word-aligned storage
-        let bit_count = raw_bits + (BIT_ALIGNMENT - raw_bits % BIT_ALIGNMENT) % BIT_ALIGNMENT;
+        let bit_count = raw_bits.next_multiple_of(BIT_ALIGNMENT);
         let hash_count = optimal_hash_count(max_elements, bit_count);
 
         Self {
