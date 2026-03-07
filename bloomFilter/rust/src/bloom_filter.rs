@@ -47,7 +47,7 @@ impl BloomFilter {
 
     /// Adds an item to the filter.
     pub fn add<T: Hash>(&mut self, item: &T) {
-        let (h1, h2) = self.hash_pair(item);
+        let (h1, h2) = hash_pair(item);
         for i in 0..self.hash_count {
             let idx = self.probe_index(h1, h2, i);
             self.set_bit(idx);
@@ -56,8 +56,9 @@ impl BloomFilter {
 
     /// Returns `true` if the item *might* be in the set (possible false positive),
     /// or `false` if the item is *definitely* not in the set.
+    #[must_use]
     pub fn contains<T: Hash>(&self, item: &T) -> bool {
-        let (h1, h2) = self.hash_pair(item);
+        let (h1, h2) = hash_pair(item);
         (0..self.hash_count).all(|i| {
             let idx = self.probe_index(h1, h2, i);
             self.get_bit(idx)
@@ -80,24 +81,8 @@ impl BloomFilter {
         self.false_positive_rate
     }
 
-    /// Computes two independent 64-bit hashes using MurmurHash3-128 (first half)
-    /// and xxHash64, mirroring the Python implementation's hash function choices.
-    fn hash_pair<T: Hash>(&self, item: &T) -> (u64, u64) {
-        let h1 = {
-            let mut hasher = mur3::Hasher128::with_seed(0);
-            item.hash(&mut hasher);
-            hasher.finish128().0
-        };
-        let h2 = {
-            let mut hasher = xxhash_rust::xxh64::Xxh64::new(0);
-            item.hash(&mut hasher);
-            hasher.finish()
-        };
-        (h1, h2)
-    }
-
     /// Enhanced double hashing: position = (h1 + (i+1) * h2) mod bit_count.
-    /// The (i+1) offset avoids the degenerate case where h2 == 0.
+    /// The (i+1) offset avoids the degenerate case where i == 0.
     #[inline]
     fn probe_index(&self, h1: u64, h2: u64, i: usize) -> usize {
         let combined = h1.wrapping_add((i as u64 + 1).wrapping_mul(h2));
@@ -129,6 +114,22 @@ impl fmt::Display for BloomFilter {
 fn optimal_bit_count(n: usize, p: f64) -> usize {
     let m = -(n as f64 * p.ln()) / (LN_2 * LN_2);
     m.ceil() as usize
+}
+
+/// Computes two independent 64-bit hashes using MurmurHash3-128 (first half)
+/// and xxHash64, mirroring the Python implementation's hash function choices.
+fn hash_pair<T: Hash>(item: &T) -> (u64, u64) {
+    let h1 = {
+        let mut hasher = mur3::Hasher128::with_seed(0);
+        item.hash(&mut hasher);
+        hasher.finish128().0
+    };
+    let h2 = {
+        let mut hasher = xxhash_rust::xxh64::Xxh64::new(0);
+        item.hash(&mut hasher);
+        hasher.finish()
+    };
+    (h1, h2)
 }
 
 /// k = (m / n) * ln 2
