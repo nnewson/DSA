@@ -45,8 +45,8 @@ impl BloomFilter {
         }
     }
 
-    /// Inserts an item into the filter.
-    pub fn insert<T: Hash>(&mut self, item: &T) {
+    /// Adds an item to the filter.
+    pub fn add<T: Hash>(&mut self, item: &T) {
         let (h1, h2) = self.hash_pair(item);
         for i in 0..self.hash_count {
             let idx = self.probe_index(h1, h2, i);
@@ -143,7 +143,7 @@ fn main() {
 
     let words = ["hello", "world", "bloom", "filter", "rust"];
     for word in &words {
-        bf.insert(word);
+        bf.add(word);
     }
 
     for word in &words {
@@ -221,7 +221,7 @@ mod tests {
         let mut bf = BloomFilter::new(1000, 0.01);
         let items = ["alpha", "bravo", "charlie", "delta", "echo"];
         for item in &items {
-            bf.insert(item);
+            bf.add(item);
         }
         for item in &items {
             assert!(bf.contains(item), "{item} should be found after insertion");
@@ -231,16 +231,16 @@ mod tests {
     #[test]
     fn duplicate_insert_is_idempotent() {
         let mut bf = BloomFilter::new(100, 0.01);
-        bf.insert(&"duplicate");
-        bf.insert(&"duplicate");
-        bf.insert(&"duplicate");
+        bf.add(&"duplicate");
+        bf.add(&"duplicate");
+        bf.add(&"duplicate");
         assert!(bf.contains(&"duplicate"));
     }
 
     #[test]
     fn empty_string_can_be_inserted() {
         let mut bf = BloomFilter::new(100, 0.01);
-        bf.insert(&"");
+        bf.add(&"");
         assert!(bf.contains(&""));
     }
 
@@ -248,16 +248,16 @@ mod tests {
     fn single_element_filter() {
         let mut bf = BloomFilter::new(1, 0.01);
         assert!(!bf.contains(&"only"));
-        bf.insert(&"only");
+        bf.add(&"only");
         assert!(bf.contains(&"only"));
     }
 
     #[test]
     fn works_with_integer_types() {
         let mut bf = BloomFilter::new(100, 0.01);
-        bf.insert(&42u64);
-        bf.insert(&0i32);
-        bf.insert(&-1i64);
+        bf.add(&42u64);
+        bf.add(&0i32);
+        bf.add(&-1i64);
         assert!(bf.contains(&42u64));
         assert!(bf.contains(&0i32));
         assert!(bf.contains(&-1i64));
@@ -267,7 +267,7 @@ mod tests {
     #[test]
     fn works_with_byte_slices() {
         let mut bf = BloomFilter::new(100, 0.01);
-        bf.insert(&b"raw bytes".as_slice());
+        bf.add(&b"raw bytes".as_slice());
         assert!(bf.contains(&b"raw bytes".as_slice()));
         assert!(!bf.contains(&b"other bytes".as_slice()));
     }
@@ -279,7 +279,7 @@ mod tests {
         let n = 5_000;
         let mut bf = BloomFilter::new(n, 0.01);
         for i in 0..n {
-            bf.insert(&i);
+            bf.add(&i);
         }
         for i in 0..n {
             assert!(bf.contains(&i), "false negative for {i}");
@@ -294,7 +294,7 @@ mod tests {
 
         // Insert 0..n
         for i in 0..n {
-            bf.insert(&i);
+            bf.add(&i);
         }
 
         // Probe n..2n (none were inserted)
@@ -370,7 +370,7 @@ mod tests {
     #[test]
     fn distinguishes_similar_strings() {
         let mut bf = BloomFilter::new(1000, 0.001);
-        bf.insert(&"abc");
+        bf.add(&"abc");
         // These should almost certainly not collide at 0.1% FPR
         assert!(!bf.contains(&"abd"));
         assert!(!bf.contains(&"ab"));
@@ -384,7 +384,7 @@ mod tests {
         let n = 50_000;
         let mut bf = BloomFilter::new(n, 0.01);
         for i in 0..n {
-            bf.insert(&i);
+            bf.add(&i);
         }
         // Spot-check a handful
         assert!(bf.contains(&0usize));
