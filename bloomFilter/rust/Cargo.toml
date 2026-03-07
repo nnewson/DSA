@@ -1,0 +1,12 @@
+[package]
+name = "bloom_filter"
+version = "0.1.0"
+edition = "2024"
+
+[[bin]]
+name = "bloom_filter"
+path = "src/bloom_filter.rs"
+
+[dependencies]
+mur3 = "0.1.0"
+xxhash-rust = { version = "0.8.15", features = ["xxh64"] }
