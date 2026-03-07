@@ -97,7 +97,6 @@ public:
         });
     }
 
-    [[nodiscard]]
     /**
      * @brief Checks if an element might be present in the Bloom filter.
      * 
@@ -109,6 +108,7 @@ public:
      *       the element was probably added, while a false result guarantees the element
      *       was never added.
      */
+    [[nodiscard]]
     bool contains(std::span<const std::byte> element) const
     {
         return forEachPosition(element, [this](std::size_t position) 
