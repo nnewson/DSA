@@ -20,7 +20,8 @@ enum class Colour
     Black
 };
 
-template <typename K, typename V, typename Compare = std::less<K>> class RedBlackTree
+template <typename K, typename V, typename Compare = std::less<K>>
+class RedBlackTree
 {
     struct Node
     {
@@ -33,10 +34,10 @@ template <typename K, typename V, typename Compare = std::less<K>> class RedBlac
     };
 
 public:
-    RedBlackTree() : 
-        nil_{make_nil()}, 
-        root_{nil_}, 
-        size_{0} 
+    RedBlackTree()
+        : nil_{make_nil()},
+          root_{nil_},
+          size_{0}
     {
     }
 
@@ -49,11 +50,11 @@ public:
     RedBlackTree(const RedBlackTree &) = delete;
     RedBlackTree &operator=(const RedBlackTree &) = delete;
 
-    RedBlackTree(RedBlackTree &&other) noexcept : 
-        nil_{other.nil_}, 
-        root_{other.root_}, 
-        size_{other.size_}, 
-        comp_{std::move(other.comp_)}
+    RedBlackTree(RedBlackTree &&other) noexcept
+        : nil_{other.nil_},
+          root_{other.root_},
+          size_{other.size_},
+          comp_{std::move(other.comp_)}
     {
         other.nil_ = nullptr;
         other.root_ = nullptr;
@@ -120,9 +121,9 @@ public:
         return node->value;
     }
 
-    const V &operator[](const K &key) const 
-    { 
-        return at(key); 
+    const V &operator[](const K &key) const
+    {
+        return at(key);
     }
 
     /**
@@ -164,6 +165,17 @@ public:
         insert_fixup(new_node);
     }
 
+    /**
+     * @brief Finds the value associated with the specified key.
+     *
+     * Performs a lookup using the tree comparator and returns a non-owning
+     * reference to the stored value when the key exists.
+     *
+     * @param key The key to search for.
+     *
+     * @return A populated std::optional containing a const reference to the value
+     *         if the key is present; otherwise std::nullopt.
+     */
     [[nodiscard]]
     std::optional<std::reference_wrapper<const V>> find(const K &key) const
     {
@@ -264,9 +276,9 @@ public:
 
         Iterator() = default;
 
-        reference operator*() const 
-        { 
-            return {current_->key, current_->value}; 
+        reference operator*() const
+        {
+            return {current_->key, current_->value};
         }
 
         Iterator &operator++()
@@ -287,24 +299,25 @@ public:
             return a.current_ == b.current_;
         }
 
-        friend bool operator!=(const Iterator &a, const Iterator &b) 
-        { 
-            return !(a == b); 
+        friend bool operator!=(const Iterator &a, const Iterator &b)
+        {
+            return !(a == b);
         }
 
     private:
         friend class RedBlackTree;
 
-        Iterator(Node *root, Node *nil) : nil_{nil}
+        Iterator(Node *root, Node *nil)
+            : nil_{nil}
         {
             push_left(root);
             advance_to_next();
         }
 
         // Sentinel constructor for end()
-        explicit Iterator(Node *nil) : 
-            nil_{nil}, 
-            current_{nil} 
+        explicit Iterator(Node *nil)
+            : nil_{nil},
+              current_{nil}
         {
         }
 
@@ -330,9 +343,9 @@ public:
             push_left(current_->right);
         }
 
-        void advance() 
-        { 
-            advance_to_next(); 
+        void advance()
+        {
+            advance_to_next();
         }
 
         Node *nil_ = nullptr;
@@ -379,18 +392,48 @@ public:
     };
 
     // Access to root and nil for property validation in tests
-    [[nodiscard]] 
-    const Node *root_node() const                   { return root_; }
-    [[nodiscard]] 
-    const Node *nil_node() const                    { return nil_; }
+    [[nodiscard]]
+    const Node *root_node() const
+    {
+        return root_;
+    }
+
+    [[nodiscard]]
+    const Node *nil_node() const
+    {
+        return nil_;
+    }
 
     // Expose Node internals for test helpers
-    static const K &node_key(const Node *n)         { return n->key; }
-    static const V &node_value(const Node *n)       { return n->value; }
-    static Colour node_colour(const Node *n)        { return n->colour; }
-    static const Node *node_left(const Node *n)     { return n->left; }
-    static const Node *node_right(const Node *n)    { return n->right; }
-    static const Node *node_parent(const Node *n)   { return n->parent; }
+    static const K &node_key(const Node *n)
+    {
+        return n->key;
+    }
+
+    static const V &node_value(const Node *n)
+    {
+        return n->value;
+    }
+
+    static Colour node_colour(const Node *n)
+    {
+        return n->colour;
+    }
+
+    static const Node *node_left(const Node *n)
+    {
+        return n->left;
+    }
+
+    static const Node *node_right(const Node *n)
+    {
+        return n->right;
+    }
+
+    static const Node *node_parent(const Node *n)
+    {
+        return n->parent;
+    }
 
 private:
     static Node *make_nil()
@@ -409,7 +452,7 @@ private:
         {
             return;
         }
-        
+
         destroy(node->left);
         destroy(node->right);
         delete node;
