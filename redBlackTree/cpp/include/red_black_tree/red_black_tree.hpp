@@ -20,6 +20,20 @@ enum class Colour
     Black
 };
 
+/**
+ * @brief A self-balancing binary search tree that maintains O(log n) lookup, insertion,
+ *        and deletion by enforcing red-black colouring invariants.
+ *
+ * @tparam K Key type, must be comparable via the Compare functor.
+ * @tparam V Value type stored alongside each key.
+ * @tparam Compare Strict weak ordering functor for keys (defaults to std::less<K>).
+ *
+ * @details
+ * Uses a sentinel nil node instead of nullptr to simplify boundary checks — every
+ * leaf and the root's parent point to this single shared sentinel. The nil node is
+ * always black, which allows rotation and fixup code to read colour fields without
+ * null-checking.
+ */
 template <typename K, typename V, typename Compare = std::less<K>>
 class RedBlackTree
 {
@@ -30,7 +44,7 @@ class RedBlackTree
         Colour colour = Colour::Red;
         Node* left = nullptr;
         Node* right = nullptr;
-        Node* parent = nullptr;
+        Node* parent = nullptr; // non-owning back-pointer; ownership flows parent -> child
     };
 
 public:
@@ -145,10 +159,12 @@ public:
         }
 
         ++size_;
+        // New nodes start red with both children pointing to nil_
         auto* new_node = new Node{key, value, Colour::Red, nil_, nil_, nil_};
 
         if (parent_node == nil_)
         {
+            // Tree was empty — new node becomes the root
             root_ = new_node;
         }
         else if (comp_(key, parent_node->key))
@@ -162,6 +178,7 @@ public:
             new_node->parent = parent_node;
         }
 
+        // A red node under a red parent violates RB properties — fix up the tree
         insert_fixup(new_node);
     }
 
@@ -218,36 +235,48 @@ public:
             return false;
         }
 
+        // Track the colour of the node physically removed from the tree.
+        // If it was black, deletion reduces black-height and requires fixup.
         auto original_colour = node_to_delete->colour;
-        Node* fixup_node;
+        Node* fixup_node; // the node that takes the deleted node's position
 
         if (node_to_delete->left == nil_)
         {
+            // Only a right child (or no children) — splice in the right subtree
             fixup_node = node_to_delete->right;
             transplant(node_to_delete, node_to_delete->right);
         }
         else if (node_to_delete->right == nil_)
         {
+            // Only a left child — splice in the left subtree
             fixup_node = node_to_delete->left;
             transplant(node_to_delete, node_to_delete->left);
         }
         else
         {
+            // Two children — replace with the in-order successor (smallest node
+            // in the right subtree). The successor has no left child by definition.
             auto* successor = minimum(node_to_delete->right);
             original_colour = successor->colour;
             fixup_node = successor->right;
 
             if (successor->parent == node_to_delete)
             {
+                // Successor is the direct right child — fixup_node's parent is
+                // already correct after transplant, but we must set it explicitly
+                // because fixup_node may be nil_ (whose parent is self-referential).
                 fixup_node->parent = successor;
             }
             else
             {
+                // Detach successor from its current position, then adopt
+                // node_to_delete's right subtree
                 transplant(successor, successor->right);
                 successor->right = node_to_delete->right;
                 successor->right->parent = successor;
             }
 
+            // Move successor into node_to_delete's position and adopt its left subtree
             transplant(node_to_delete, successor);
             successor->left = node_to_delete->left;
             successor->left->parent = successor;
@@ -256,6 +285,7 @@ public:
 
         if (original_colour == Colour::Black)
         {
+            // Removing a black node broke the equal-black-height invariant
             delete_fixup(fixup_node);
         }
 
@@ -264,7 +294,14 @@ public:
         return true;
     }
 
-    // In-order iterator
+    /**
+     * @brief Stack-based in-order iterator over the tree's key-value pairs.
+     *
+     * @details Uses an explicit stack to simulate the recursive in-order traversal.
+     *          On construction, pushes all left-spine nodes from the root. Each
+     *          advance pops the top node (the next smallest) and pushes the left
+     *          spine of its right subtree. Reaching an empty stack signals end().
+     */
     class Iterator
     {
     public:
@@ -436,6 +473,14 @@ public:
     }
 
 private:
+    /**
+     * @brief Creates the sentinel nil node used as a universal leaf/boundary marker.
+     *
+     * @details The nil node's left, right, and parent pointers all reference itself,
+     *          forming a self-referential cycle. This allows code to unconditionally
+     *          dereference any node pointer (e.g., sibling->left->colour) without
+     *          null checks, since traversal past a leaf always lands on nil.
+     */
     static Node* make_nil()
     {
         auto* nil = new Node{};
@@ -446,6 +491,11 @@ private:
         return nil;
     }
 
+    /**
+     * @brief Recursively deallocates all nodes in the subtree rooted at node.
+     * @note Stops at nil_ or nullptr to avoid destroying the sentinel.
+     *       The nil_ node is deleted separately in the destructor.
+     */
     void destroy(Node* node)
     {
         if (node == nil_ || node == nullptr)
@@ -458,6 +508,15 @@ private:
         delete node;
     }
 
+    /**
+     * @brief Searches the tree for a node matching the given key.
+     *
+     * @return A pair of (node_pointer, found). When found is true, node_pointer is
+     *         the matching node. When found is false, node_pointer is where a new
+     *         node with this key would be inserted as a child (the would-be parent),
+     *         or nil_ if the tree is empty. This dual purpose avoids redundant
+     *         traversals in add() and remove().
+     */
     [[nodiscard]]
     std::pair<Node*, bool> find_node_or_parent(const K& key) const
     {
@@ -484,6 +543,7 @@ private:
         return {parent, false};
     }
 
+    /** @brief Returns the leftmost (smallest) node in the subtree rooted at node. */
     Node* minimum(Node* node) const
     {
         while (node->left != nil_)
@@ -493,6 +553,13 @@ private:
         return node;
     }
 
+    /**
+     * @brief Replaces the subtree rooted at 'from' with the subtree rooted at 'to'.
+     *
+     * @details Updates from's parent to point to 'to' instead, and sets to's parent
+     *          accordingly. Does not update to's children — the caller is responsible
+     *          for linking any remaining subtree references (see remove()).
+     */
     void transplant(Node* from, Node* to)
     {
         if (from->parent == nil_)
@@ -510,6 +577,19 @@ private:
         to->parent = from->parent;
     }
 
+    /**
+     * @brief Performs a left rotation around the given node.
+     *
+     * @details Pivots node down and to the left, promoting its right child upward.
+     *          Before:        After:
+     *            node           R
+     *           /    \        /   \
+     *          A      R     node   C
+     *               /   \  /    \
+     *              B     C A     B
+     *
+     *          Preserves the BST ordering invariant and updates all parent pointers.
+     */
     void rotate_left(Node* node)
     {
         Node* right_child = node->right;
@@ -540,6 +620,17 @@ private:
         node->parent = right_child;
     }
 
+    /**
+     * @brief Performs a right rotation around the given node (mirror of rotate_left).
+     *
+     * @details Pivots node down and to the right, promoting its left child upward.
+     *          Before:        After:
+     *            node           L
+     *           /    \        /   \
+     *          L      C     A    node
+     *        /   \              /    \
+     *       A     B            B      C
+     */
     void rotate_right(Node* node)
     {
         Node* left_child = node->left;
@@ -570,17 +661,35 @@ private:
         node->parent = left_child;
     }
 
+    /**
+     * @brief Restores red-black properties after insertion.
+     *
+     * @details A newly inserted node is always red, which may violate the rule that
+     *          a red node cannot have a red parent. This method walks up the tree
+     *          recolouring and rotating until the violation is resolved.
+     *
+     *          Three cases are handled (with symmetric mirrors for left/right):
+     *            Case 1 — Uncle is red: recolour parent, uncle, and grandparent;
+     *                     move the violation up two levels and repeat.
+     *            Case 2 — Uncle is black, node is an inner child (zig-zag): rotate
+     *                     node's parent to convert into Case 3.
+     *            Case 3 — Uncle is black, node is an outer child (zig-zig): recolour
+     *                     and rotate grandparent. This is the terminal case.
+     */
     void insert_fixup(Node* node)
     {
         while (node->parent != nil_ && node->parent->colour == Colour::Red)
         {
+            // Determine which side of the grandparent the parent sits on.
+            // The logic below handles parent == grandparent->left;
+            // the else branch is the symmetric mirror.
             if (node->parent == node->parent->parent->left)
             {
                 Node* uncle = node->parent->parent->right;
 
                 if (uncle != nil_ && uncle->colour == Colour::Red)
                 {
-                    // Case 1: uncle is red
+                    // Case 1: uncle is red — push blackness down from grandparent
                     node->parent->colour = Colour::Black;
                     uncle->colour = Colour::Black;
                     node->parent->parent->colour = Colour::Red;
@@ -590,23 +699,25 @@ private:
                 {
                     if (node == node->parent->right)
                     {
-                        // Case 2: uncle black, node is right child
+                        // Case 2: uncle black, node is right child (zig-zag)
+                        // Rotate to align node as left child, converting to Case 3
                         node = node->parent;
                         rotate_left(node);
                     }
 
-                    // Case 3: uncle black, node is left child
+                    // Case 3: uncle black, node is left child (zig-zig)
                     node->parent->colour = Colour::Black;
                     node->parent->parent->colour = Colour::Red;
                     rotate_right(node->parent->parent);
                 }
             }
-            else
+            else // Mirror: parent is right child of grandparent
             {
                 Node* uncle = node->parent->parent->left;
 
                 if (uncle != nil_ && uncle->colour == Colour::Red)
                 {
+                    // Case 1 (mirror)
                     node->parent->colour = Colour::Black;
                     uncle->colour = Colour::Black;
                     node->parent->parent->colour = Colour::Red;
@@ -616,10 +727,12 @@ private:
                 {
                     if (node == node->parent->left)
                     {
+                        // Case 2 (mirror): rotate to convert to Case 3
                         node = node->parent;
                         rotate_right(node);
                     }
 
+                    // Case 3 (mirror)
                     node->parent->colour = Colour::Black;
                     node->parent->parent->colour = Colour::Red;
                     rotate_left(node->parent->parent);
@@ -627,19 +740,43 @@ private:
             }
         }
 
+        // The root must always be black (insertion may have coloured it red in Case 1)
         root_->colour = Colour::Black;
     }
 
+    /**
+     * @brief Restores red-black properties after deletion of a black node.
+     *
+     * @param node The replacement node that now occupies the deleted node's position.
+     *             This node carries an "extra black" that must be resolved.
+     *
+     * @details Removing a black node reduces the black-height on one path, violating
+     *          the invariant that all root-to-leaf paths have equal black-height.
+     *          The algorithm treats 'node' as "doubly black" and resolves it by
+     *          pushing the extra black up the tree or absorbing it via rotations.
+     *
+     *          Four cases are handled (with symmetric mirrors for left/right):
+     *            Case 1 — Sibling is red: rotate parent to make sibling black,
+     *                     converting to Cases 2, 3, or 4.
+     *            Case 2 — Sibling is black with two black children: remove one black
+     *                     from both node and sibling (recolour sibling red), push the
+     *                     extra black up to the parent and repeat.
+     *            Case 3 — Sibling is black, far child is black, near child is red:
+     *                     rotate sibling to make the far child red, converting to Case 4.
+     *            Case 4 — Sibling is black, far child is red: rotate parent and
+     *                     recolour to absorb the extra black. This is the terminal case.
+     */
     void delete_fixup(Node* node)
     {
         while (node != root_ && node->colour == Colour::Black)
         {
+            // Handle node being a left child; the else branch is the symmetric mirror.
             if (node == node->parent->left)
             {
                 Node* sibling = node->parent->right;
                 if (sibling->colour == Colour::Red)
                 {
-                    // Case 1: sibling is red
+                    // Case 1: sibling is red — rotate to get a black sibling
                     sibling->colour = Colour::Black;
                     node->parent->colour = Colour::Red;
                     rotate_left(node->parent);
@@ -649,7 +786,8 @@ private:
                 if (sibling->left->colour == Colour::Black &&
                     sibling->right->colour == Colour::Black)
                 {
-                    // Case 2: sibling black with two black children
+                    // Case 2: sibling black with two black children —
+                    // pull a black off both node and sibling, push extra black to parent
                     sibling->colour = Colour::Red;
                     node = node->parent;
                 }
@@ -657,27 +795,29 @@ private:
                 {
                     if (sibling->right->colour == Colour::Black)
                     {
-                        // Case 4: near child red
+                        // Case 3: near child (left) is red, far child (right) is black —
+                        // rotate sibling right to set up Case 4
                         sibling->left->colour = Colour::Black;
                         sibling->colour = Colour::Red;
                         rotate_right(sibling);
                         sibling = node->parent->right;
                     }
 
-                    // Case 3: far child red
+                    // Case 4: far child (right) is red — absorb the extra black
                     sibling->colour = node->parent->colour;
                     node->parent->colour = Colour::Black;
                     sibling->right->colour = Colour::Black;
                     rotate_left(node->parent);
-                    node = root_;
+                    node = root_; // terminates the loop
                 }
             }
-            else
+            else // Mirror: node is a right child
             {
                 Node* sibling = node->parent->left;
 
                 if (sibling->colour == Colour::Red)
                 {
+                    // Case 1 (mirror)
                     sibling->colour = Colour::Black;
                     node->parent->colour = Colour::Red;
                     rotate_right(node->parent);
@@ -686,6 +826,7 @@ private:
                 if (sibling->right->colour == Colour::Black &&
                     sibling->left->colour == Colour::Black)
                 {
+                    // Case 2 (mirror)
                     sibling->colour = Colour::Red;
                     node = node->parent;
                 }
@@ -693,12 +834,14 @@ private:
                 {
                     if (sibling->left->colour == Colour::Black)
                     {
+                        // Case 3 (mirror)
                         sibling->right->colour = Colour::Black;
                         sibling->colour = Colour::Red;
                         rotate_left(sibling);
                         sibling = node->parent->left;
                     }
 
+                    // Case 4 (mirror)
                     sibling->colour = node->parent->colour;
                     node->parent->colour = Colour::Black;
                     sibling->left->colour = Colour::Black;
@@ -708,6 +851,7 @@ private:
             }
         }
 
+        // Resolve any remaining extra black by simply colouring the node black
         node->colour = Colour::Black;
     }
 
