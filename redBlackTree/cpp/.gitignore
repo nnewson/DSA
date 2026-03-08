@@ -4,3 +4,6 @@ build-*
 vcpkg_installed
 CMakeUserPresets.json
 docs
+CMakeCache.txt
+.cache
+CMakeFiles
