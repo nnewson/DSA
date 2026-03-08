@@ -14,33 +14,64 @@
 namespace bloom_filter
 {
 
-constexpr std::size_t BIT_ALIGNMENT = 64;
-constexpr std::size_t BIT_ALIGNMENT_SHIFT = 6; // log2(64)
-constexpr std::size_t BIT_ALIGNMENT_MASK = BIT_ALIGNMENT - 1;
+constexpr std::size_t BIT_ALIGNMENT = 64;       ///< Word size in bits (using 64-bit words)
+constexpr std::size_t BIT_ALIGNMENT_SHIFT = 6;   ///< log2(64) — used to divide by 64 via right-shift
+constexpr std::size_t BIT_ALIGNMENT_MASK = BIT_ALIGNMENT - 1; ///< 0x3F — used to get bit offset within a word via bitwise AND
 
+/**
+ * @brief A compact bit array backed by 64-bit words.
+ *
+ * Stores individual bits packed into uint64_t words for memory efficiency.
+ * Bit addressing uses bitwise operations instead of division/modulo:
+ * - Word index: i >> 6  (equivalent to i / 64)
+ * - Bit offset: i & 0x3F (equivalent to i % 64)
+ */
 class BitArray
 {
 public:
+    /**
+     * @brief Constructs a bit array with at least the specified number of bits.
+     *
+     * @param bits The minimum number of bits. Rounded up to the nearest
+     *             multiple of 64 to fill complete words.
+     */
     explicit BitArray(std::size_t bits)
         : words((bits + BIT_ALIGNMENT_MASK) / BIT_ALIGNMENT, 0)
     {
     }
 
+    /**
+     * @brief Sets the bit at position i to 1.
+     * @param i The zero-based bit index.
+     */
     void set(std::size_t i)
     {
         words[i >> BIT_ALIGNMENT_SHIFT] |= (1ULL << (i & BIT_ALIGNMENT_MASK));
     }
 
+    /**
+     * @brief Clears the bit at position i to 0.
+     * @param i The zero-based bit index.
+     */
     void clear(std::size_t i)
     {
         words[i >> BIT_ALIGNMENT_SHIFT] &= ~(1ULL << (i & BIT_ALIGNMENT_MASK));
     }
 
+    /**
+     * @brief Tests whether the bit at position i is set.
+     * @param i The zero-based bit index.
+     * @return true if the bit is set, false otherwise.
+     */
     bool test(std::size_t i) const
     {
         return words[i >> BIT_ALIGNMENT_SHIFT] & (1ULL << (i & BIT_ALIGNMENT_MASK));
     }
 
+    /**
+     * @brief Returns the total number of bits in the array.
+     * @return The capacity in bits (always a multiple of 64).
+     */
     std::size_t size() const
     {
         return words.size() * BIT_ALIGNMENT;
@@ -50,10 +81,17 @@ private:
     std::vector<std::uint64_t> words;
 };
 
+/**
+ * @brief Holds a pair of independent hash values used for double hashing.
+ *
+ * Double hashing simulates k independent hash functions using the formula:
+ *   h(i) = hash1 + (i + 1) * hash2
+ * This avoids the cost of computing k separate hashes per element.
+ */
 struct HashResult
 {
-    std::size_t hash1;
-    std::size_t hash2;
+    std::size_t hash1; ///< Primary hash (XXH64)
+    std::size_t hash2; ///< Secondary hash (MurmurHash3)
 };
 
 class BloomFilter
@@ -291,22 +329,22 @@ public:
     }
 
 private:
-    template <typename F>
     /**
      * @brief Applies a function to each hash position for the given element.
      *
-     * This method computes multiple hash values for the provided element and applies
-     * the given function to each resulting position in the bloom filter's bit array.
+     * Uses double hashing to derive hashCount positions from two base hashes:
+     *   position(i) = (hash1 + (i+1) * hash2) % bitArraySize
+     *
+     * Short-circuits on the first false return from fn, which allows `contains`
+     * to bail out early when a bit is unset.
      *
      * @tparam F The type of the callable object (function, lambda, functor)
-     * @param element A span of bytes representing the element to hash
-     * @param fn A callable that will be invoked for each computed hash position.
-     *           The callable should accept a position index as its parameter.
-     * @return true if all function invocations succeeded, false otherwise
-     *
-     * @note The function processes the element through multiple hash functions to
-     *       determine the positions in the bit array that correspond to this element.
+     * @param element A span of bytes representing the element to hash.
+     * @param fn A callable invoked with each computed bit position. Must return
+     *           true to continue iteration, or false to stop early.
+     * @return true if fn returned true for all positions, false otherwise.
      */
+    template <typename F>
     bool forEachPosition(std::span<const std::byte> element, F&& fn) const
     {
         HashResult hashes = calculateHashes(element);
