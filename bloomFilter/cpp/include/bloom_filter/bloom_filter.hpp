@@ -194,7 +194,7 @@ public:
      * @note The [[nodiscard]] attribute indicates that the return value should not be ignored
      */
     [[nodiscard]]
-    const BitArray &getBitArray() const noexcept
+    const BitArray& getBitArray() const noexcept
     {
         return bitArray;
     }
@@ -256,11 +256,13 @@ public:
             throw std::invalid_argument("maxElements must be greater than 0, got " +
                                         std::to_string(maxElements));
         }
+
         if (falsePositiveRate <= 0.0 || falsePositiveRate >= 1.0)
         {
             throw std::invalid_argument("falsePositiveRate must be between 0 and 1, got " +
                                         std::to_string(falsePositiveRate));
         }
+        
         double m = -((static_cast<double>(maxElements) * std::log(falsePositiveRate)) /
                      (std::pow(std::log(2.0), 2.0)));
         return static_cast<std::size_t>(std::ceil(m));
@@ -305,7 +307,7 @@ private:
      * @note The function processes the element through multiple hash functions to
      *       determine the positions in the bit array that correspond to this element.
      */
-    bool forEachPosition(std::span<const std::byte> element, F &&fn) const
+    bool forEachPosition(std::span<const std::byte> element, F&& fn) const
     {
         HashResult hashes = calculateHashes(element);
         for (std::size_t i = 0; i < this->hashCount; ++i)
@@ -316,6 +318,7 @@ private:
                 return false;
             }
         }
+
         return true;
     }
 
