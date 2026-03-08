@@ -7,3 +7,4 @@ AccessModifierOffset: -4
 PackConstructorInitializers: Never
 BreakTemplateDeclarations: Yes
 AllowShortFunctionsOnASingleLine: None
+PointerAlignment: Left
