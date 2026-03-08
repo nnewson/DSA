@@ -28,9 +28,9 @@ class RedBlackTree
         K key;
         V value;
         Colour colour = Colour::Red;
-        Node *left = nullptr;
-        Node *right = nullptr;
-        Node *parent = nullptr;
+        Node* left = nullptr;
+        Node* right = nullptr;
+        Node* parent = nullptr;
     };
 
 public:
@@ -47,10 +47,10 @@ public:
         delete nil_;
     }
 
-    RedBlackTree(const RedBlackTree &) = delete;
-    RedBlackTree &operator=(const RedBlackTree &) = delete;
+    RedBlackTree(const RedBlackTree&) = delete;
+    RedBlackTree& operator=(const RedBlackTree&) = delete;
 
-    RedBlackTree(RedBlackTree &&other) noexcept
+    RedBlackTree(RedBlackTree&& other) noexcept
         : nil_{other.nil_},
           root_{other.root_},
           size_{other.size_},
@@ -61,7 +61,7 @@ public:
         other.size_ = 0;
     }
 
-    RedBlackTree &operator=(RedBlackTree &&other) noexcept
+    RedBlackTree& operator=(RedBlackTree&& other) noexcept
     {
         if (this != &other)
         {
@@ -92,14 +92,14 @@ public:
     }
 
     [[nodiscard]]
-    bool contains(const K &key) const
+    bool contains(const K& key) const
     {
         auto [node, found] = find_node_or_parent(key);
         return found;
     }
 
     [[nodiscard]]
-    const V &at(const K &key) const
+    const V& at(const K& key) const
     {
         auto [node, found] = find_node_or_parent(key);
         if (!found)
@@ -110,7 +110,7 @@ public:
         return node->value;
     }
 
-    V &operator[](const K &key)
+    V& operator[](const K& key)
     {
         auto [node, found] = find_node_or_parent(key);
         if (!found)
@@ -121,7 +121,7 @@ public:
         return node->value;
     }
 
-    const V &operator[](const K &key) const
+    const V& operator[](const K& key) const
     {
         return at(key);
     }
@@ -135,7 +135,7 @@ public:
      * @note If the key already exists, the behavior depends on the implementation
      *       (e.g., update the existing value or ignore the insertion).
      */
-    void add(const K &key, const V &value)
+    void add(const K& key, const V& value)
     {
         auto [parent_node, found] = find_node_or_parent(key);
         if (found)
@@ -145,7 +145,7 @@ public:
         }
 
         ++size_;
-        auto *new_node = new Node{key, value, Colour::Red, nil_, nil_, nil_};
+        auto* new_node = new Node{key, value, Colour::Red, nil_, nil_, nil_};
 
         if (parent_node == nil_)
         {
@@ -177,7 +177,7 @@ public:
      *         if the key is present; otherwise std::nullopt.
      */
     [[nodiscard]]
-    std::optional<std::reference_wrapper<const V>> find(const K &key) const
+    std::optional<std::reference_wrapper<const V>> find(const K& key) const
     {
         auto [node, found] = find_node_or_parent(key);
         if (!found)
@@ -210,7 +210,7 @@ public:
      * Time Complexity: O(log n) where n is the number of nodes
      * Space Complexity: O(1)
      */
-    bool remove(const K &key)
+    bool remove(const K& key)
     {
         auto [node_to_delete, found] = find_node_or_parent(key);
         if (!found)
@@ -219,7 +219,7 @@ public:
         }
 
         auto original_colour = node_to_delete->colour;
-        Node *fixup_node;
+        Node* fixup_node;
 
         if (node_to_delete->left == nil_)
         {
@@ -233,7 +233,7 @@ public:
         }
         else
         {
-            auto *successor = minimum(node_to_delete->right);
+            auto* successor = minimum(node_to_delete->right);
             original_colour = successor->colour;
             fixup_node = successor->right;
 
@@ -269,7 +269,7 @@ public:
     {
     public:
         using iterator_category = std::input_iterator_tag;
-        using value_type = std::pair<const K &, const V &>;
+        using value_type = std::pair<const K&, const V&>;
         using difference_type = std::ptrdiff_t;
         using pointer = void;
         using reference = value_type;
@@ -281,7 +281,7 @@ public:
             return {current_->key, current_->value};
         }
 
-        Iterator &operator++()
+        Iterator& operator++()
         {
             advance();
             return *this;
@@ -294,12 +294,12 @@ public:
             return tmp;
         }
 
-        friend bool operator==(const Iterator &a, const Iterator &b)
+        friend bool operator==(const Iterator& a, const Iterator& b)
         {
             return a.current_ == b.current_;
         }
 
-        friend bool operator!=(const Iterator &a, const Iterator &b)
+        friend bool operator!=(const Iterator& a, const Iterator& b)
         {
             return !(a == b);
         }
@@ -307,7 +307,7 @@ public:
     private:
         friend class RedBlackTree;
 
-        Iterator(Node *root, Node *nil)
+        Iterator(Node* root, Node* nil)
             : nil_{nil}
         {
             push_left(root);
@@ -315,13 +315,13 @@ public:
         }
 
         // Sentinel constructor for end()
-        explicit Iterator(Node *nil)
+        explicit Iterator(Node* nil)
             : nil_{nil},
               current_{nil}
         {
         }
 
-        void push_left(Node *node)
+        void push_left(Node* node)
         {
             while (node != nil_)
             {
@@ -348,9 +348,9 @@ public:
             advance_to_next();
         }
 
-        Node *nil_ = nullptr;
-        Node *current_ = nullptr;
-        std::stack<Node *> stack_;
+        Node* nil_ = nullptr;
+        Node* current_ = nullptr;
+        std::stack<Node*> stack_;
     };
 
     [[nodiscard]]
@@ -383,62 +383,62 @@ public:
     // Expose internals for testing RB properties
     struct NodeView
     {
-        const K *key;
+        const K* key;
         Colour colour;
-        const NodeView *left;
-        const NodeView *right;
-        const NodeView *parent;
+        const NodeView* left;
+        const NodeView* right;
+        const NodeView* parent;
         bool is_nil;
     };
 
     // Access to root and nil for property validation in tests
     [[nodiscard]]
-    const Node *root_node() const
+    const Node* root_node() const
     {
         return root_;
     }
 
     [[nodiscard]]
-    const Node *nil_node() const
+    const Node* nil_node() const
     {
         return nil_;
     }
 
     // Expose Node internals for test helpers
-    static const K &node_key(const Node *n)
+    static const K& node_key(const Node* n)
     {
         return n->key;
     }
 
-    static const V &node_value(const Node *n)
+    static const V& node_value(const Node* n)
     {
         return n->value;
     }
 
-    static Colour node_colour(const Node *n)
+    static Colour node_colour(const Node* n)
     {
         return n->colour;
     }
 
-    static const Node *node_left(const Node *n)
+    static const Node* node_left(const Node* n)
     {
         return n->left;
     }
 
-    static const Node *node_right(const Node *n)
+    static const Node* node_right(const Node* n)
     {
         return n->right;
     }
 
-    static const Node *node_parent(const Node *n)
+    static const Node* node_parent(const Node* n)
     {
         return n->parent;
     }
 
 private:
-    static Node *make_nil()
+    static Node* make_nil()
     {
-        auto *nil = new Node{};
+        auto* nil = new Node{};
         nil->colour = Colour::Black;
         nil->left = nil;
         nil->right = nil;
@@ -446,7 +446,7 @@ private:
         return nil;
     }
 
-    void destroy(Node *node)
+    void destroy(Node* node)
     {
         if (node == nil_ || node == nullptr)
         {
@@ -459,10 +459,10 @@ private:
     }
 
     [[nodiscard]]
-    std::pair<Node *, bool> find_node_or_parent(const K &key) const
+    std::pair<Node*, bool> find_node_or_parent(const K& key) const
     {
-        Node *current = root_;
-        Node *parent = nil_;
+        Node* current = root_;
+        Node* parent = nil_;
 
         while (current != nil_)
         {
@@ -484,7 +484,7 @@ private:
         return {parent, false};
     }
 
-    Node *minimum(Node *node) const
+    Node* minimum(Node* node) const
     {
         while (node->left != nil_)
         {
@@ -493,7 +493,7 @@ private:
         return node;
     }
 
-    void transplant(Node *from, Node *to)
+    void transplant(Node* from, Node* to)
     {
         if (from->parent == nil_)
         {
@@ -510,9 +510,9 @@ private:
         to->parent = from->parent;
     }
 
-    void rotate_left(Node *node)
+    void rotate_left(Node* node)
     {
-        Node *right_child = node->right;
+        Node* right_child = node->right;
         assert(right_child != nil_);
 
         node->right = right_child->left;
@@ -540,9 +540,9 @@ private:
         node->parent = right_child;
     }
 
-    void rotate_right(Node *node)
+    void rotate_right(Node* node)
     {
-        Node *left_child = node->left;
+        Node* left_child = node->left;
         assert(left_child != nil_);
 
         node->left = left_child->right;
@@ -570,13 +570,13 @@ private:
         node->parent = left_child;
     }
 
-    void insert_fixup(Node *node)
+    void insert_fixup(Node* node)
     {
         while (node->parent != nil_ && node->parent->colour == Colour::Red)
         {
             if (node->parent == node->parent->parent->left)
             {
-                Node *uncle = node->parent->parent->right;
+                Node* uncle = node->parent->parent->right;
 
                 if (uncle != nil_ && uncle->colour == Colour::Red)
                 {
@@ -603,7 +603,7 @@ private:
             }
             else
             {
-                Node *uncle = node->parent->parent->left;
+                Node* uncle = node->parent->parent->left;
 
                 if (uncle != nil_ && uncle->colour == Colour::Red)
                 {
@@ -630,13 +630,13 @@ private:
         root_->colour = Colour::Black;
     }
 
-    void delete_fixup(Node *node)
+    void delete_fixup(Node* node)
     {
         while (node != root_ && node->colour == Colour::Black)
         {
             if (node == node->parent->left)
             {
-                Node *sibling = node->parent->right;
+                Node* sibling = node->parent->right;
                 if (sibling->colour == Colour::Red)
                 {
                     // Case 1: sibling is red
@@ -674,7 +674,7 @@ private:
             }
             else
             {
-                Node *sibling = node->parent->left;
+                Node* sibling = node->parent->left;
 
                 if (sibling->colour == Colour::Red)
                 {
@@ -711,8 +711,8 @@ private:
         node->colour = Colour::Black;
     }
 
-    Node *nil_;
-    Node *root_;
+    Node* nil_;
+    Node* root_;
     std::size_t size_;
     [[no_unique_address]] Compare comp_;
 };
