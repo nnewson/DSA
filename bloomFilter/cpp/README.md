@@ -8,7 +8,7 @@ Configure CMake, which will install and build dependencies via vcpkg.
 Additionally, since I use `NeoVim`, I export the `compile_commands.json` to the build directory to for use with `clangd`:
 
 ```bash
-cmake --preset=default -DCMAKE_EXPORT_COMPILE_COMMANDS=1
+cmake --preset=vcpkg -DCMAKE_EXPORT_COMPILE_COMMANDS=1
 ```
 
 Build the test via CMake:
