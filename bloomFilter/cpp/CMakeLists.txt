@@ -14,7 +14,7 @@ find_package(GTest CONFIG REQUIRED)
 add_library(bloom_filter INTERFACE)
 target_include_directories(bloom_filter INTERFACE ${PROJECT_SOURCE_DIR}/include)
 target_link_libraries(bloom_filter INTERFACE xxHash::xxhash murmurhash::murmurhash)
-target_compile_features(bloom_filter INTERFACE cxx_std_20)
+target_compile_features(bloom_filter INTERFACE cxx_std_23)
 
 # Tests
 enable_testing()

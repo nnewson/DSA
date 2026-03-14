@@ -1,6 +1,2 @@
 CompileFlags:
-  Add:
-    - -std=c++23
-    - -nostdinc++
-    - -isystem/opt/homebrew/include/c++/15
-    - -isystem/opt/homebrew/include/c++/15/aarch64-apple-darwin25
+  CompilationDatabase: build
