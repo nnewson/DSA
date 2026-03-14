@@ -35,3 +35,17 @@ Close off the venv:
 ```bash
 deactivate
 ```
+
+You can also build and test in a Docker container.
+
+Build the container:
+
+```bash
+docker build -t red-black-tree-python-test .
+```
+
+Run the tests in the container:
+
+```bash
+docker run --rm red-black-tree-python-test
+```
