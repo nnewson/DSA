@@ -34,11 +34,11 @@ You can also build and test in a Docker containter.
 Build the container:
 
 ```bash
-docker build -t red-black-tree-test .
+docker build -t red-black-tree-cpp-test .
 ```
 
 Run the tests in the container:
 
 ```bash
-docker run --rm red-black-tree-test
+docker run --rm red-black-tree-cpp-test
 ```
