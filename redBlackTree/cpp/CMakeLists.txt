@@ -11,7 +11,7 @@ find_package(GTest CONFIG REQUIRED)
 # Header-only library target for red_black_tree
 add_library(red_black_tree INTERFACE)
 target_include_directories(red_black_tree INTERFACE ${PROJECT_SOURCE_DIR}/include)
-target_compile_features(red_black_tree INTERFACE cxx_std_20)
+target_compile_features(red_black_tree INTERFACE cxx_std_23)
 
 # Tests
 enable_testing()
