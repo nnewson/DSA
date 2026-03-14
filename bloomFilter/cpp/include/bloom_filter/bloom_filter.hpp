@@ -3,6 +3,7 @@
 
 #include <cmath>
 #include <cstddef>
+#include <cstdint>
 #include <span>
 #include <stdexcept>
 #include <string>
@@ -14,9 +15,14 @@
 namespace bloom_filter
 {
 
-constexpr std::size_t BIT_ALIGNMENT = 64;       ///< Word size in bits (using 64-bit words)
-constexpr std::size_t BIT_ALIGNMENT_SHIFT = 6;   ///< log2(64) — used to divide by 64 via right-shift
-constexpr std::size_t BIT_ALIGNMENT_MASK = BIT_ALIGNMENT - 1; ///< 0x3F — used to get bit offset within a word via bitwise AND
+// Word size in bits (using 64-bit words)
+constexpr std::size_t BIT_ALIGNMENT = 64;
+
+//  log2(64) — used to divide by 64 via right-shift
+constexpr std::size_t BIT_ALIGNMENT_SHIFT = 6;
+
+// 0x3F — used to get bit offset within a word via bitwise AND
+constexpr std::size_t BIT_ALIGNMENT_MASK = BIT_ALIGNMENT - 1;
 
 /**
  * @brief A compact bit array backed by 64-bit words.
@@ -300,7 +306,7 @@ public:
             throw std::invalid_argument("falsePositiveRate must be between 0 and 1, got " +
                                         std::to_string(falsePositiveRate));
         }
-        
+
         double m = -((static_cast<double>(maxElements) * std::log(falsePositiveRate)) /
                      (std::pow(std::log(2.0), 2.0)));
         return static_cast<std::size_t>(std::ceil(m));
