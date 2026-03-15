@@ -33,16 +33,17 @@ class _Node[K: SupportsLT, V]:
     key: K
     value: V
     colour: Colour = Colour.RED
-    left: _Node[K, V] | None = None
-    right: _Node[K, V] | None = None
-    parent: _Node[K, V] | None = None
+    left: _Node[K, V] = None  # type: ignore
+    right: _Node[K, V] = None  # type: ignore
+    parent: _Node[K, V] = None  # type: ignore
 
 
 class RedBlackTree[K: SupportsLT, V]:
     def __init__(self):
         # Sentinel node for leaves to simplify the logic for the delete operation and to
         # avoid having to check for None in various places.
-        self._nil = _Node(None, None, colour=Colour.BLACK)
+        # Sentinel node — intentionally holds no real key/value.
+        self._nil: _Node[K, V] = _Node(None, None, colour=Colour.BLACK)  # type: ignore
         self._nil.left = self._nil.right = self._nil.parent = self._nil
 
         self.root: _Node[K, V] = self._nil
@@ -286,86 +287,55 @@ class RedBlackTree[K: SupportsLT, V]:
         a node. Uses the standard CLRS algorithm by examining the sibling and its
         children, then performing rotations and recoloring as necessary.
 
-        The method handles several cases based on the color of the sibling and its
-        children:
-        - Case 1: Sibling is red - recolor sibling and parent, then rotate to move
-                  the red sibling up the tree.
-        - Case 2: Sibling is black with two black children - recolor sibling to red
+        Four cases are handled (with symmetric mirrors for left/right):
+        - Case 1: Sibling is red — rotate parent to make sibling black,
+                  converting to Cases 2, 3, or 4.
+        - Case 2: Sibling is black with two black children — recolor sibling to red
                   and move up the tree to fix potential violations.
-        - Case 3: Sibling is black with one red child (the far child) -
-                  recolor sibling and parent, then rotate to fix the violation.
-        - Case 4: Sibling is black with one red child (the near child) -
-                  recolor sibling and its red child, then rotate to fix the violation.
+        - Case 3: Sibling is black, far child is black, near child is red —
+                  rotate sibling to make the far child red, converting to Case 4.
+        - Case 4: Sibling is black, far child is red — rotate parent and recolour
+                  to absorb the extra black. This is the terminal case.
 
         The process continues up the tree until the root is reached or no violations remain.
+
         Args:
             node: The node that may violate Red-Black Tree properties after deletion.
-
-        Returns:
-            None
         """
         while node is not self.root and node.colour == Colour.BLACK:
-            # Determine if the node is a left child or a right child to identify the sibling.
-            if node == node.parent.left:
-                sibling = node.parent.right
-                if sibling.colour == Colour.RED:
-                    # Case 1: Sibling is red
-                    sibling.colour = Colour.BLACK
-                    node.parent.colour = Colour.RED
-                    self._rotate_left(node.parent)
-                    sibling = node.parent.right
+            is_left = node == node.parent.left
+            sibling = node.parent.right if is_left else node.parent.left
 
-                if (
-                    sibling.left.colour == Colour.BLACK
-                    and sibling.right.colour == Colour.BLACK
-                ):
-                    # Case 2: Sibling is black with two black children
-                    sibling.colour = Colour.RED
-                    node = node.parent
-                else:
-                    if sibling.right.colour == Colour.BLACK:
-                        # Case 4: Sibling is black with one red child (the near child)
-                        sibling.left.colour = Colour.BLACK
-                        sibling.colour = Colour.RED
-                        self._rotate_right(sibling)
-                        sibling = node.parent.right
+            if sibling.colour == Colour.RED:
+                # Case 1: sibling is red — rotate to get a black sibling
+                sibling.colour = Colour.BLACK
+                node.parent.colour = Colour.RED
+                (self._rotate_left if is_left else self._rotate_right)(node.parent)
+                sibling = node.parent.right if is_left else node.parent.left
 
-                    # Case 3: Sibling is black with one red child (the far child)
-                    sibling.colour = node.parent.colour
-                    node.parent.colour = Colour.BLACK
-                    sibling.right.colour = Colour.BLACK
-                    self._rotate_left(node.parent)
-                    node = self.root
-            else:
-                sibling = node.parent.left
-                if sibling.colour == Colour.RED:
-                    # Case 1: Sibling is red
-                    sibling.colour = Colour.BLACK
-                    node.parent.colour = Colour.RED
-                    self._rotate_right(node.parent)
-                    sibling = node.parent.left
+            near_nephew = sibling.left if is_left else sibling.right
+            far_nephew = sibling.right if is_left else sibling.left
 
-                if (
-                    sibling.right.colour == Colour.BLACK
-                    and sibling.left.colour == Colour.BLACK
-                ):
-                    # Case 2: Sibling is black with two black children
-                    sibling.colour = Colour.RED
-                    node = node.parent
-                else:
-                    if sibling.left.colour == Colour.BLACK:
-                        # Case 4: Sibling is black with one red child (the near child)
-                        sibling.right.colour = Colour.BLACK
-                        sibling.colour = Colour.RED
-                        self._rotate_left(sibling)
-                        sibling = node.parent.left
+            if near_nephew.colour == Colour.BLACK and far_nephew.colour == Colour.BLACK:
+                # Case 2: both nephews black — pull black up to parent
+                sibling.colour = Colour.RED
+                node = node.parent
+                continue
 
-                    # Case 3: Sibling is black with one red child (the far child)
-                    sibling.colour = node.parent.colour
-                    node.parent.colour = Colour.BLACK
-                    sibling.left.colour = Colour.BLACK
-                    self._rotate_right(node.parent)
-                    node = self.root
+            if far_nephew.colour == Colour.BLACK:
+                # Case 3: near nephew red, far nephew black — rotate sibling
+                near_nephew.colour = Colour.BLACK
+                sibling.colour = Colour.RED
+                (self._rotate_right if is_left else self._rotate_left)(sibling)
+                sibling = node.parent.right if is_left else node.parent.left
+                far_nephew = sibling.right if is_left else sibling.left
+
+            # Case 4: far nephew is red — absorb the extra black (terminal)
+            sibling.colour = node.parent.colour
+            node.parent.colour = Colour.BLACK
+            far_nephew.colour = Colour.BLACK
+            (self._rotate_left if is_left else self._rotate_right)(node.parent)
+            node = self.root
 
         node.colour = Colour.BLACK
 
@@ -377,62 +347,45 @@ class RedBlackTree[K: SupportsLT, V]:
         a new node. Uses the standard CLRS algorithm by examining the colors of the
         parent and uncle nodes, then performing rotations and recoloring as necessary.
 
-        The method handles three main cases:
-        - Case 1: Uncle is red - recolor parent, uncle, and grandparent
-        - Case 2: Uncle is black and node is on opposite side of parent - rotate to align node
-        - Case 3: Uncle is black and node is on same side as parent - rotate and recolor
-
-        The process continues up the tree until the root is reached or no violations remain.
+        Three cases are handled (with symmetric mirrors for left/right):
+        - Case 1: Uncle is red — recolor parent, uncle, and grandparent;
+                  move the violation up two levels and repeat.
+        - Case 2: Uncle is black, node is an inner child (zig-zag) — rotate
+                  node's parent to convert into Case 3.
+        - Case 3: Uncle is black, node is an outer child (zig-zig) — recolour
+                  and rotate grandparent. This is the terminal case.
 
         Args:
             node: The newly inserted node that may violate Red-Black Tree properties.
-
-        Returns:
-            None
         """
         while node.parent is not self._nil and node.parent.colour == Colour.RED:
-            # Check if the node's parent is a left child or a right child of the grandparent
-            # to determine the uncle's position.
-            if node.parent == node.parent.parent.left:
-                # Uncle is the right child of the grandparent.
-                uncle = node.parent.parent.right
-                if uncle is not self._nil and uncle.colour == Colour.RED:
-                    # Case 1: Parent red, Uncle is red (recoloring)
-                    node.parent.colour = Colour.BLACK
-                    uncle.colour = Colour.BLACK
-                    node.parent.parent.colour = Colour.RED
-                    node = node.parent.parent
-                else:
-                    if node == node.parent.right:
-                        # Case 2: Uncle is black and current node is a right child
-                        # (left rotation needed)
-                        node = node.parent
-                        self._rotate_left(node)
-                    # Case 3: Uncle is black and current node is a left child
-                    # (right rotation needed)
-                    node.parent.colour = Colour.BLACK
-                    node.parent.parent.colour = Colour.RED
-                    self._rotate_right(node.parent.parent)
-            else:
-                # Uncle is the left child of the grandparent.
-                uncle = node.parent.parent.left
-                if uncle is not self._nil and uncle.colour == Colour.RED:
-                    # Case 1: Parent red, Uncle is red (recoloring)
-                    node.parent.colour = Colour.BLACK
-                    uncle.colour = Colour.BLACK
-                    node.parent.parent.colour = Colour.RED
-                    node = node.parent.parent
-                else:
-                    if node == node.parent.left:
-                        # Case 2: Uncle is black and current node is a left child
-                        # (right rotation needed)
-                        node = node.parent
-                        self._rotate_right(node)
-                    # Case 3: Uncle is black and current node is a right child
-                    # (left rotation needed)
-                    node.parent.colour = Colour.BLACK
-                    node.parent.parent.colour = Colour.RED
-                    self._rotate_left(node.parent.parent)
+            grandparent = node.parent.parent
+            parent_is_left = node.parent == grandparent.left
+            uncle = grandparent.right if parent_is_left else grandparent.left
+
+            if uncle is not self._nil and uncle.colour == Colour.RED:
+                # Case 1: uncle is red — push blackness down from grandparent
+                node.parent.colour = Colour.BLACK
+                uncle.colour = Colour.BLACK
+                grandparent.colour = Colour.RED
+                node = grandparent
+                continue
+
+            # Uncle is black — determine if node is an inner child (zig-zag)
+            node_is_inner = (
+                (node == node.parent.right) if parent_is_left
+                else (node == node.parent.left)
+            )
+
+            if node_is_inner:
+                # Case 2: zig-zag — rotate to align as outer child, converting to Case 3
+                node = node.parent
+                (self._rotate_left if parent_is_left else self._rotate_right)(node)
+
+            # Case 3: zig-zig — recolour and rotate grandparent
+            node.parent.colour = Colour.BLACK
+            grandparent.colour = Colour.RED
+            (self._rotate_right if parent_is_left else self._rotate_left)(grandparent)
 
         self.root.colour = Colour.BLACK
 
