@@ -680,64 +680,36 @@ private:
     {
         while (node->parent != nil_ && node->parent->colour == Colour::Red)
         {
-            // Determine which side of the grandparent the parent sits on.
-            // The logic below handles parent == grandparent->left;
-            // the else branch is the symmetric mirror.
-            if (node->parent == node->parent->parent->left)
+            Node* grandparent = node->parent->parent;
+            bool parent_is_left = (node->parent == grandparent->left);
+            Node* uncle = parent_is_left ? grandparent->right : grandparent->left;
+
+            if (uncle != nil_ && uncle->colour == Colour::Red)
             {
-                Node* uncle = node->parent->parent->right;
-
-                if (uncle != nil_ && uncle->colour == Colour::Red)
-                {
-                    // Case 1: uncle is red — push blackness down from grandparent
-                    node->parent->colour = Colour::Black;
-                    uncle->colour = Colour::Black;
-                    node->parent->parent->colour = Colour::Red;
-                    node = node->parent->parent;
-                }
-                else
-                {
-                    if (node == node->parent->right)
-                    {
-                        // Case 2: uncle black, node is right child (zig-zag)
-                        // Rotate to align node as left child, converting to Case 3
-                        node = node->parent;
-                        rotate_left(node);
-                    }
-
-                    // Case 3: uncle black, node is left child (zig-zig)
-                    node->parent->colour = Colour::Black;
-                    node->parent->parent->colour = Colour::Red;
-                    rotate_right(node->parent->parent);
-                }
+                // Case 1: uncle is red — push blackness down from grandparent
+                node->parent->colour = Colour::Black;
+                uncle->colour = Colour::Black;
+                grandparent->colour = Colour::Red;
+                node = grandparent;
+                continue;
             }
-            else // Mirror: parent is right child of grandparent
+
+            // Uncle is black — determine if node is an inner child (zig-zag)
+            bool node_is_inner = parent_is_left
+                ? (node == node->parent->right)
+                : (node == node->parent->left);
+
+            if (node_is_inner)
             {
-                Node* uncle = node->parent->parent->left;
-
-                if (uncle != nil_ && uncle->colour == Colour::Red)
-                {
-                    // Case 1 (mirror)
-                    node->parent->colour = Colour::Black;
-                    uncle->colour = Colour::Black;
-                    node->parent->parent->colour = Colour::Red;
-                    node = node->parent->parent;
-                }
-                else
-                {
-                    if (node == node->parent->left)
-                    {
-                        // Case 2 (mirror): rotate to convert to Case 3
-                        node = node->parent;
-                        rotate_right(node);
-                    }
-
-                    // Case 3 (mirror)
-                    node->parent->colour = Colour::Black;
-                    node->parent->parent->colour = Colour::Red;
-                    rotate_left(node->parent->parent);
-                }
+                // Case 2: zig-zag — rotate to align as outer child, converting to Case 3
+                node = node->parent;
+                parent_is_left ? rotate_left(node) : rotate_right(node);
             }
+
+            // Case 3: zig-zig — recolour and rotate grandparent
+            node->parent->colour = Colour::Black;
+            grandparent->colour = Colour::Red;
+            parent_is_left ? rotate_right(grandparent) : rotate_left(grandparent);
         }
 
         // The root must always be black (insertion may have coloured it red in Case 1)
@@ -770,85 +742,46 @@ private:
     {
         while (node != root_ && node->colour == Colour::Black)
         {
-            // Handle node being a left child; the else branch is the symmetric mirror.
-            if (node == node->parent->left)
+            bool is_left = (node == node->parent->left);
+            Node* sibling = is_left ? node->parent->right : node->parent->left;
+
+            if (sibling->colour == Colour::Red)
             {
-                Node* sibling = node->parent->right;
-                if (sibling->colour == Colour::Red)
-                {
-                    // Case 1: sibling is red — rotate to get a black sibling
-                    sibling->colour = Colour::Black;
-                    node->parent->colour = Colour::Red;
-                    rotate_left(node->parent);
-                    sibling = node->parent->right;
-                }
-
-                if (sibling->left->colour == Colour::Black &&
-                    sibling->right->colour == Colour::Black)
-                {
-                    // Case 2: sibling black with two black children —
-                    // pull a black off both node and sibling, push extra black to parent
-                    sibling->colour = Colour::Red;
-                    node = node->parent;
-                }
-                else
-                {
-                    if (sibling->right->colour == Colour::Black)
-                    {
-                        // Case 3: near child (left) is red, far child (right) is black —
-                        // rotate sibling right to set up Case 4
-                        sibling->left->colour = Colour::Black;
-                        sibling->colour = Colour::Red;
-                        rotate_right(sibling);
-                        sibling = node->parent->right;
-                    }
-
-                    // Case 4: far child (right) is red — absorb the extra black
-                    sibling->colour = node->parent->colour;
-                    node->parent->colour = Colour::Black;
-                    sibling->right->colour = Colour::Black;
-                    rotate_left(node->parent);
-                    node = root_; // terminates the loop
-                }
+                // Case 1: sibling is red — rotate to get a black sibling
+                sibling->colour = Colour::Black;
+                node->parent->colour = Colour::Red;
+                is_left ? rotate_left(node->parent) : rotate_right(node->parent);
+                sibling = is_left ? node->parent->right : node->parent->left;
             }
-            else // Mirror: node is a right child
+
+            Node* near_nephew = is_left ? sibling->left : sibling->right;
+            Node* far_nephew = is_left ? sibling->right : sibling->left;
+
+            if (near_nephew->colour == Colour::Black &&
+                far_nephew->colour == Colour::Black)
             {
-                Node* sibling = node->parent->left;
-
-                if (sibling->colour == Colour::Red)
-                {
-                    // Case 1 (mirror)
-                    sibling->colour = Colour::Black;
-                    node->parent->colour = Colour::Red;
-                    rotate_right(node->parent);
-                    sibling = node->parent->left;
-                }
-                if (sibling->right->colour == Colour::Black &&
-                    sibling->left->colour == Colour::Black)
-                {
-                    // Case 2 (mirror)
-                    sibling->colour = Colour::Red;
-                    node = node->parent;
-                }
-                else
-                {
-                    if (sibling->left->colour == Colour::Black)
-                    {
-                        // Case 3 (mirror)
-                        sibling->right->colour = Colour::Black;
-                        sibling->colour = Colour::Red;
-                        rotate_left(sibling);
-                        sibling = node->parent->left;
-                    }
-
-                    // Case 4 (mirror)
-                    sibling->colour = node->parent->colour;
-                    node->parent->colour = Colour::Black;
-                    sibling->left->colour = Colour::Black;
-                    rotate_right(node->parent);
-                    node = root_;
-                }
+                // Case 2: both nephews black — pull black up to parent
+                sibling->colour = Colour::Red;
+                node = node->parent;
+                continue;
             }
+
+            if (far_nephew->colour == Colour::Black)
+            {
+                // Case 3: near nephew red, far nephew black — rotate sibling
+                near_nephew->colour = Colour::Black;
+                sibling->colour = Colour::Red;
+                is_left ? rotate_right(sibling) : rotate_left(sibling);
+                sibling = is_left ? node->parent->right : node->parent->left;
+                far_nephew = is_left ? sibling->right : sibling->left;
+            }
+
+            // Case 4: far nephew is red — absorb the extra black (terminal)
+            sibling->colour = node->parent->colour;
+            node->parent->colour = Colour::Black;
+            far_nephew->colour = Colour::Black;
+            is_left ? rotate_left(node->parent) : rotate_right(node->parent);
+            node = root_;
         }
 
         // Resolve any remaining extra black by simply colouring the node black
