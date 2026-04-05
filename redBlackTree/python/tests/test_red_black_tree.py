@@ -61,18 +61,14 @@ def assert_parent_pointers(tree, node=None, expected_parent=None):
     if node is None:
         node = tree.root
         expected_parent = tree._nil
-    if node is tree._nil or node is None:
+    if node is tree._nil:
         return
 
     expected_label = (
-        expected_parent.key
-        if expected_parent is not tree._nil and expected_parent is not None
-        else "NIL"
+        expected_parent.key if expected_parent is not tree._nil else "NIL"
     )
     actual_label = (
-        node.parent.key
-        if node.parent is not tree._nil and node.parent is not None
-        else repr(node.parent)
+        node.parent.key if node.parent is not tree._nil else repr(node.parent)
     )
     assert node.parent is expected_parent, (
         f"Node {node.key}: parent should be {expected_label} but is {actual_label}"
@@ -133,14 +129,14 @@ class TestNode:
         node = _Node(key=1, value="a")
         assert node.colour == Colour.RED
 
-    def test_default_children_are_none(self):
+    def test_default_children_are_self(self):
         node = _Node(key=1, value="a")
-        assert node.left is None
-        assert node.right is None
+        assert node.left is node
+        assert node.right is node
 
-    def test_default_parent_is_none(self):
+    def test_default_parent_is_self(self):
         node = _Node(key=1, value="a")
-        assert node.parent is None
+        assert node.parent is node
 
     def test_explicit_black_colour(self):
         node = _Node(key=1, value="a", colour=Colour.BLACK)

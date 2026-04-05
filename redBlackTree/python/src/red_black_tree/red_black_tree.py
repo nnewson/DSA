@@ -37,15 +37,23 @@ class _Node[K: SupportsLT, V]:
     right: _Node[K, V] = None  # type: ignore
     parent: _Node[K, V] = None  # type: ignore
 
+    # If we don't have assigned parent, left, or right nodes, we will set them to self
+    # in __post_init__ since this must be the sentinel node.
+    def __post_init__(self):
+        if self.left is None:
+            self.left = self
+        if self.right is None:
+            self.right = self
+        if self.parent is None:
+            self.parent = self
+
 
 class RedBlackTree[K: SupportsLT, V]:
     def __init__(self):
         # Sentinel node for leaves to simplify the logic for the delete operation and to
         # avoid having to check for None in various places.
-        # Sentinel node — intentionally holds no real key/value.
+        # The sentinel's left, right, and parent are self-referential via __post_init__.
         self._nil: _Node[K, V] = _Node(None, None, colour=Colour.BLACK)  # type: ignore
-        self._nil.left = self._nil.right = self._nil.parent = self._nil
-
         self.root: _Node[K, V] = self._nil
         self.size: int = 0
 
@@ -373,7 +381,8 @@ class RedBlackTree[K: SupportsLT, V]:
 
             # Uncle is black — determine if node is an inner child (zig-zag)
             node_is_inner = (
-                (node == node.parent.right) if parent_is_left
+                (node == node.parent.right)
+                if parent_is_left
                 else (node == node.parent.left)
             )
 
