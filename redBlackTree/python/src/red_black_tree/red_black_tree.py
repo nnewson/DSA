@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import InitVar, dataclass, field
 from enum import Enum
 from typing import Protocol
 
@@ -33,19 +33,16 @@ class _Node[K: SupportsLT, V]:
     key: K
     value: V
     colour: Colour = Colour.RED
-    left: _Node[K, V] = None  # type: ignore
-    right: _Node[K, V] = None  # type: ignore
-    parent: _Node[K, V] = None  # type: ignore
+    nil: InitVar[_Node[K, V] | None] = None
+    left: _Node[K, V] = field(init=False)
+    right: _Node[K, V] = field(init=False)
+    parent: _Node[K, V] = field(init=False)
 
-    # If we don't have assigned parent, left, or right nodes, we will set them to self
-    # in __post_init__ since this must be the sentinel node.
-    def __post_init__(self):
-        if self.left is None:
-            self.left = self
-        if self.right is None:
-            self.right = self
-        if self.parent is None:
-            self.parent = self
+    def __post_init__(self, nil: _Node[K, V] | None):
+        sentinel = nil if nil is not None else self
+        self.left = sentinel
+        self.right = sentinel
+        self.parent = sentinel
 
 
 class RedBlackTree[K: SupportsLT, V]:
@@ -113,7 +110,7 @@ class RedBlackTree[K: SupportsLT, V]:
 
         # Adding a new node to the tree
         self.size += 1
-        new_node = _Node(key, value, left=self._nil, right=self._nil, parent=self._nil)
+        new_node = _Node(key, value, nil=self._nil)
 
         if parent_node is self._nil:
             # The tree was empty, so the new node becomes the root.
